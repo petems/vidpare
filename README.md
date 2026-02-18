@@ -35,7 +35,13 @@ No ffmpeg. No Electron. No WASM.
 
 ## Building
 
-Open the Xcode project and build for macOS (Cmd+B). The app targets macOS 14+ with local development signing.
+Open the project directory in Xcode (`File > Open...` on the repo root) — Xcode natively recognizes the `Package.swift` and provides full IDE support including signing and entitlements. Build with Cmd+B. Alternatively, build from the command line:
+
+```bash
+swift build
+```
+
+The app targets macOS 14+ with local development signing.
 
 ## License
 

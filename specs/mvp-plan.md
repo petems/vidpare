@@ -9,7 +9,7 @@ Building "VidPare," a native macOS video trimmer to escape the limitations of we
 | Decision | Choice | Rationale |
 |---|---|---|
 | Platform | Native macOS (Swift + SwiftUI + AVFoundation) | Hardware-accelerated, no dependencies |
-| Build system | Xcode project (.xcodeproj) | Standard for macOS GUI apps; easier signing/entitlements/asset config |
+| Build system | Swift Package (`Package.swift`) | Can be created via CLI, opens natively in Xcode, supports signing/entitlements when opened as Xcode project |
 | macOS target | macOS 14 (Sonoma) | Enables `@Observable` macro and latest SwiftUI APIs |
 | File size limit | **None** | AVFoundation streams data; memory usage doesn't scale with file size |
 | Supported input formats | MP4, MOV, M4V only | These are what AVFoundation reliably handles. No MKV/AVI/WebM — those need ffmpeg (roadmap) |
@@ -25,6 +25,7 @@ Building "VidPare," a native macOS video trimmer to escape the limitations of we
 - **Trim**: Single cut — set in-point and out-point
 - **Export formats**: MP4 (H.264), MOV (H.264), MP4 (HEVC/H.265)
 - **Quality presets**: Passthrough (fastest, default), High, Medium, Low
+  - Note: Passthrough preserves the source codec; selecting HEVC format with Passthrough auto-promotes to re-encode
 - **Estimated output size** shown in export dialog
 - **Export location**: User-chosen via save dialog
 
@@ -34,26 +35,28 @@ Building "VidPare," a native macOS video trimmer to escape the limitations of we
 
 ```
 vidpare/
-├── VidPare.xcodeproj/
-├── VidPare/
-│   ├── App/
-│   │   └── VidPareApp.swift              # @main entry point, WindowGroup
-│   ├── Models/
-│   │   ├── VideoDocument.swift           # AVAsset wrapper, file metadata
-│   │   └── TrimState.swift              # In/out points, export settings (@Observable)
-│   ├── Views/
-│   │   ├── ContentView.swift            # Main window layout (player + timeline + controls)
-│   │   ├── VideoPlayerView.swift        # NSViewRepresentable wrapping AVPlayerLayer
-│   │   ├── TimelineView.swift           # Thumbnail strip + draggable trim handles
-│   │   ├── PlayerControlsView.swift     # Play/pause, time display, trim buttons
-│   │   └── ExportSheet.swift            # Format picker, quality presets, estimated size, save
-│   ├── Services/
-│   │   ├── VideoEngine.swift            # Trim/export via AVAssetExportSession
-│   │   └── ThumbnailGenerator.swift     # AVAssetImageGenerator wrapper for timeline thumbnails
-│   └── Utilities/
-│       └── TimeFormatter.swift          # Duration/timestamp formatting helpers
-├── VidPareTests/
-│   └── VideoEngineTests.swift
+├── Package.swift                          # Swift Package manifest (macOS 14+, SwiftUI lifecycle)
+├── Sources/
+│   └── VidPare/
+│       ├── App/
+│       │   └── VidPareApp.swift              # @main entry point, WindowGroup
+│       ├── Models/
+│       │   ├── VideoDocument.swift           # AVAsset wrapper, file metadata
+│       │   └── TrimState.swift              # In/out points, export settings (@Observable)
+│       ├── Views/
+│       │   ├── ContentView.swift            # Main window layout (player + timeline + controls)
+│       │   ├── VideoPlayerView.swift        # NSViewRepresentable wrapping AVPlayerLayer
+│       │   ├── TimelineView.swift           # Thumbnail strip + draggable trim handles
+│       │   ├── PlayerControlsView.swift     # Play/pause, time display, trim buttons
+│       │   └── ExportSheet.swift            # Format picker, quality presets, estimated size, save
+│       ├── Services/
+│       │   ├── VideoEngine.swift            # Trim/export via AVAssetExportSession
+│       │   └── ThumbnailGenerator.swift     # AVAssetImageGenerator wrapper for timeline thumbnails
+│       └── Utilities/
+│           └── TimeFormatter.swift          # Duration/timestamp formatting helpers
+├── Tests/
+│   └── VidPareTests/
+│       └── VideoEngineTests.swift
 ├── .gitignore
 └── README.md
 ```
@@ -61,8 +64,9 @@ vidpare/
 ## Implementation Steps
 
 ### Step 1: Project Setup
-- Create Xcode project targeting macOS 14+, Swift, SwiftUI lifecycle
-- Configure app bundle identifier, signing (local dev)
+- Create `Package.swift` with macOS 14+ platform target, SwiftUI lifecycle
+- Set up `Sources/VidPare/` and `Tests/VidPareTests/` directory structure
+- Configure app bundle identifier, signing (local dev) when opening in Xcode
 - Add .gitignore for Xcode/Swift projects
 - Commit initial project skeleton
 
@@ -82,7 +86,7 @@ vidpare/
 
 ### Step 4: Timeline with Thumbnails
 - `ThumbnailGenerator` service: uses `AVAssetImageGenerator` to extract frames at regular intervals
-- Generate ~20-30 thumbnails spread across video duration
+- Generate thumbnails proportional to video duration (e.g., ~1 per 2 seconds for short clips, clamped to a min of 10 and max of 60 for longer videos)
 - `TimelineView`: horizontal strip of thumbnail images
 - Draggable in-point and out-point handles (SwiftUI `DragGesture`)
 - Visual indication of selected trim region (highlighted area between handles)
@@ -92,8 +96,8 @@ vidpare/
 
 ### Step 5: Trim & Export Engine
 - `VideoEngine.export()` method with these modes:
-  - **Passthrough**: `AVAssetExportSession` with `AVAssetExportPresetPassthrough`, `timeRange` set to trim region. Nearly instant, no re-encode.
-  - **Re-encode**: `AVAssetExportSession` with quality presets (`AVAssetExportPresetHighestQuality`, etc.)
+  - **Passthrough**: `AVAssetExportSession` with `AVAssetExportPresetPassthrough`, `timeRange` set to trim region. Nearly instant, no re-encode. Preserves source codec — format picker is disabled (greyed out) when Passthrough is selected.
+  - **Re-encode**: `AVAssetExportSession` with quality presets (`AVAssetExportPresetHighestQuality`, etc.). Format picker (H.264/HEVC) is only enabled in re-encode mode. If user selects HEVC format first, quality auto-promotes from Passthrough to High.
 - Output file type mapping: `.mp4` -> `AVFileType.mp4`, `.mov` -> `AVFileType.mov`
 - Progress tracking via `exportSession.progress` (polled on timer)
 - Cancellation support via `exportSession.cancelExport()`
@@ -114,7 +118,7 @@ vidpare/
 ### Step 7: Polish
 - Keyboard shortcuts: Space (play/pause), I (set in-point), O (set out-point), Cmd+E (export)
 - Window title: filename + trim duration
-- Error handling: unsupported file format, export failure, disk full
+- Error handling: unsupported file format, export failure, disk full, file system permission errors (especially with App Sandbox)
 - Menu bar: File > Open, Edit > Trim shortcuts
 - App icon (can use a simple placeholder for MVP)
 
@@ -138,4 +142,4 @@ vidpare/
 - For passthrough export, trim points snap to keyframes — the UI should communicate this clearly
 - HEVC encoding is significantly slower than H.264 even with hardware acceleration — worth noting in UI
 - `AVAssetExportSession.progress` can be unreliable; poll at ~0.5s intervals and handle non-monotonic values
-- Since we can't create a real .xcodeproj via CLI (requires Xcode), we'll generate the project as a Swift Package with executable target and appropriate directory structure, then provide instructions for opening in Xcode. Alternatively, create the project structure and Swift files that can be imported into a new Xcode project.
+- The project uses a `Package.swift`-based layout. Open the package directory in Xcode (`File > Open...` on the repo root) to get full Xcode integration including signing, entitlements, and asset catalog support. Alternatively, build from CLI with `swift build`.

@@ -1,0 +1,41 @@
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+xcuserdata/
+*.playground/timeline.xctimeline
+*.playground/playground.xcworkspace
+
+# Build
+build/
+DerivedData/
+*.build/
+*.o
+*.swp
+
+# Swift Package Manager
+.build/
+Packages/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# App bundle
+*.app
+
+# Archives
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Code coverage
+*.gcda
+*.gcno
+*.profraw
+*.profdata

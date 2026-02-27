@@ -163,6 +163,24 @@ final class VideoEngineTests: XCTestCase {
         XCTAssertEqual(CMTimeCompare(state.trimRange.duration, .zero), 0)
     }
 
+    func testVideoDocumentRejectsUnsupportedFormat() async {
+        let url = URL(fileURLWithPath: "/tmp/test.mkv")
+        let doc = VideoDocument(url: url)
+
+        do {
+            try await doc.loadMetadata()
+            XCTFail("Expected unsupportedFormat error")
+        } catch let error as VideoDocumentError {
+            if case .unsupportedFormat(let ext) = error {
+                XCTAssertEqual(ext, "mkv")
+            } else {
+                XCTFail("Expected unsupportedFormat, got \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
+        }
+    }
+
     func testVideoDocumentSupportedTypes() {
         XCTAssertTrue(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.mp4")))
         XCTAssertTrue(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.MOV")))

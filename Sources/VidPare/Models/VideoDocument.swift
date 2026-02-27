@@ -30,6 +30,10 @@ final class VideoDocument {
     }
 
     func loadMetadata() async throws {
+        guard Self.canOpen(url: url) else {
+            throw VideoDocumentError.unsupportedFormat(url.pathExtension)
+        }
+
         let tracks = try await asset.loadTracks(withMediaType: .video)
         guard let videoTrack = tracks.first else {
             throw VideoDocumentError.noVideoTrack

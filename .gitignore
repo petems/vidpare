@@ -39,3 +39,10 @@ Packages/
 *.gcno
 *.profraw
 *.profdata
+
+# Node / frontend
+node_modules/
+site/node_modules/
+site/.astro/
+site/dist/
+site/.lighthouseci/

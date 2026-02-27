@@ -1,0 +1,104 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import { siteConfig } from '../content/site.config';
+import { faqs, featureItems } from '../content/features';
+---
+
+<MainLayout>
+  <main id="top">
+    <header class="site-header">
+      <a class="brand" href="#top">{siteConfig.appName}</a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#tech">Tech</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+    </header>
+
+    <section class="hero surface reveal">
+      <p class="eyebrow">Native macOS video trimmer</p>
+      <h1>{siteConfig.heroTitle}</h1>
+      <p class="lede">{siteConfig.heroSubtitle}</p>
+      <div class="cta-row">
+        <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">{siteConfig.cta.primaryLabel}</a>
+        <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">{siteConfig.cta.secondaryLabel}</a>
+      </div>
+      <p class="microcopy">Does one thing well: trim videos easily, quickly, and natively.</p>
+    </section>
+
+    <section class="trust-strip" aria-label="Key guarantees">
+      {
+        siteConfig.trustItems.map((item) => (
+          <span class="pill">{item}</span>
+        ))
+      }
+    </section>
+
+    <section id="features" class="feature-grid reveal">
+      {
+        featureItems.map((feature) => (
+          <article class="card">
+            <p class="badge">{feature.badge}</p>
+            <h2>{feature.title}</h2>
+            <p>{feature.body}</p>
+          </article>
+        ))
+      }
+    </section>
+
+    <section id="tech" class="tech-block surface reveal">
+      <h2>Not a shell over ffmpeg</h2>
+      <p>
+        VidPare is built directly on Apple frameworks: Swift, SwiftUI, AVFoundation, and VideoToolbox.
+        That gives you real macOS integration, hardware-accelerated media pipelines, and predictable behavior
+        without external binary glue.
+      </p>
+      <div class="code-chip">
+        <span>SwiftUI Shell</span>
+        <span>VideoEngine (AVFoundation)</span>
+        <span>No ffmpeg dependency</span>
+      </div>
+    </section>
+
+    <section class="workflow reveal">
+      <h2>How it works</h2>
+      <ol>
+        <li>
+          <strong>Open your clip</strong>
+          <p>Drop in MP4, MOV, or M4V directly from Finder.</p>
+        </li>
+        <li>
+          <strong>Set trim points</strong>
+          <p>Use timeline handles to choose exactly what you want to keep.</p>
+        </li>
+        <li>
+          <strong>Export fast</strong>
+          <p>Use passthrough where possible for near-instant outputs.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="cta-banner reveal" aria-label="download">
+      <h2>Free, open source, and built for macOS creators</h2>
+      <p>Use VidPare when you want trimming done in seconds, not a heavyweight editing suite.</p>
+      <div class="cta-row">
+        <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">Download Latest Release</a>
+        <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">Star on GitHub</a>
+      </div>
+    </section>
+
+    <section id="faq" class="faq reveal">
+      <h2>FAQ</h2>
+      {
+        faqs.map((item) => (
+          <details>
+            <summary>{item.question}</summary>
+            <p>{item.answer}</p>
+          </details>
+        ))
+      }
+    </section>
+  </main>
+
+  <script src="../scripts/main.ts"></script>
+</MainLayout>

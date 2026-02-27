@@ -1,0 +1,357 @@
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f7fbff;
+  --surface: #ffffff;
+  --primary: #0a6cff;
+  --primary-strong: #0045c7;
+  --ink: #0f172a;
+  --muted: #5b6b85;
+  --ring: rgba(10, 108, 255, 0.2);
+  --shadow: 0 24px 60px -30px rgba(0, 69, 199, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  color: var(--ink);
+  background: radial-gradient(circle at 80% 0%, #d8e8ff 0%, transparent 35%),
+    radial-gradient(circle at 15% 10%, #e8f1ff 0%, transparent 40%),
+    linear-gradient(180deg, #fafdff 0%, var(--bg) 45%, #eef5ff 100%);
+  font-family: 'IBM Plex Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+}
+
+main {
+  width: min(1120px, 92vw);
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+h1,
+h2,
+h3,
+.brand {
+  font-family: 'Space Grotesk Variable', 'Avenir Next', sans-serif;
+  letter-spacing: -0.03em;
+}
+
+a {
+  color: inherit;
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0 1.5rem;
+}
+
+.site-header nav {
+  display: flex;
+  gap: 1rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.site-header nav a {
+  text-decoration: none;
+}
+
+.brand {
+  font-size: 1.4rem;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.surface {
+  background: color-mix(in srgb, var(--surface) 88%, #eff5ff 12%);
+  border: 1px solid #dce7ff;
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+}
+
+.hero {
+  padding: clamp(2rem, 3vw, 3rem);
+  display: grid;
+  gap: 1rem;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 4.8vw, 4.5rem);
+  line-height: 0.96;
+  margin: 0;
+  max-width: 16ch;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--primary-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.lede {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.26rem);
+  max-width: 64ch;
+}
+
+.microcopy {
+  margin: 0;
+  color: #3b4f72;
+  font-size: 0.95rem;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.btn {
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 0.72rem 1.2rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.btn:focus-visible,
+.site-header nav a:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.btn.primary {
+  background: linear-gradient(140deg, var(--primary), #2d89ff 55%, #4ea1ff);
+  color: white;
+}
+
+.btn.secondary {
+  background: #ffffff;
+  border-color: #c8dbff;
+  color: #1b3764;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.trust-strip {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.pill {
+  border-radius: 999px;
+  background: #ffffff;
+  color: #102040;
+  font-weight: 700;
+  font-size: 0.87rem;
+  padding: 0.44rem 0.84rem;
+  border: 1px solid #aec9ff;
+}
+
+.feature-grid {
+  margin-top: 1.8rem;
+  display: grid;
+  gap: 0.9rem;
+  container-type: inline-size;
+}
+
+.card {
+  background: white;
+  border: 1px solid #d9e6ff;
+  border-radius: 20px;
+  padding: 1.1rem;
+}
+
+.card h2 {
+  margin: 0.35rem 0 0.45rem;
+  font-size: 1.2rem;
+}
+
+.card p {
+  margin: 0;
+  color: #405577;
+}
+
+.badge {
+  margin: 0;
+  display: inline-block;
+  background: #edf3ff;
+  border: 1px solid #d5e2ff;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #1c3765;
+  padding: 0.23rem 0.57rem;
+}
+
+@container (min-width: 760px) {
+  .feature-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.tech-block,
+.workflow,
+.cta-banner,
+.faq {
+  margin-top: 1.8rem;
+}
+
+.tech-block {
+  padding: 1.35rem;
+}
+
+.tech-block h2,
+.workflow h2,
+.cta-banner h2,
+.faq h2 {
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  margin: 0 0 0.7rem;
+}
+
+.tech-block p,
+.cta-banner p,
+.workflow p,
+.faq p {
+  color: #405577;
+}
+
+.code-chip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.code-chip span {
+  border: 1px solid #cfdfff;
+  border-radius: 999px;
+  background: #f4f8ff;
+  padding: 0.3rem 0.68rem;
+  font-size: 0.83rem;
+}
+
+.workflow ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.workflow li {
+  border-left: 3px solid #b8d1ff;
+  padding: 0.2rem 0 0.2rem 0.8rem;
+}
+
+.workflow strong {
+  font-family: 'Space Grotesk Variable', sans-serif;
+}
+
+.cta-banner {
+  border-radius: 26px;
+  border: 1px solid #d6e4ff;
+  background: linear-gradient(170deg, #ffffff 0%, #eaf2ff 100%);
+  padding: 1.4rem;
+}
+
+.faq details {
+  border: 1px solid #d9e7ff;
+  border-radius: 16px;
+  padding: 0.75rem 0.88rem;
+  background: white;
+}
+
+.faq details + details {
+  margin-top: 0.65rem;
+}
+
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+html.is-ready .reveal.in-view,
+html:not(.is-ready) .reveal {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 500ms ease, transform 500ms ease;
+}
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    animation: rise linear both;
+    animation-timeline: view();
+    animation-range: entry 15% cover 35%;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .site-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .site-header nav {
+    flex-wrap: wrap;
+  }
+}

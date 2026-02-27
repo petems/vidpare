@@ -59,13 +59,13 @@ resource "cloudflare_pages_project" "vidpare" {
 resource "cloudflare_pages_domain" "apex" {
   account_id   = var.cloudflare_account_id
   project_name = cloudflare_pages_project.vidpare.name
-  domain       = "vidpare.app"
+  domain       = data.cloudflare_zone.vidpare.name
 }
 
 resource "cloudflare_pages_domain" "www" {
   account_id   = var.cloudflare_account_id
   project_name = cloudflare_pages_project.vidpare.name
-  domain       = "www.vidpare.app"
+  domain       = "www.${data.cloudflare_zone.vidpare.name}"
 }
 
 resource "cloudflare_record" "apex" {

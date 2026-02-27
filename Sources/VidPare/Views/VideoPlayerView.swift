@@ -1,6 +1,6 @@
-import SwiftUI
 import AVFoundation
 import AVKit
+import SwiftUI
 
 struct VideoPlayerView: NSViewRepresentable {
     let player: AVPlayer
@@ -28,6 +28,7 @@ private class PlayerNSView: NSView {
         playerLayer.backgroundColor = NSColor.black.cgColor
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

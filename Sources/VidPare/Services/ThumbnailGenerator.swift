@@ -1,5 +1,5 @@
-import AVFoundation
 import AppKit
+import AVFoundation
 
 final class ThumbnailGenerator {
     private let asset: AVURLAsset
@@ -22,8 +22,8 @@ final class ThumbnailGenerator {
         let clampedCount = max(10, min(count, 60))
         let interval = totalSeconds / Double(clampedCount)
 
-        let times: [NSValue] = (0..<clampedCount).map { i in
-            let time = CMTime(seconds: Double(i) * interval, preferredTimescale: 600)
+        let times: [NSValue] = (0..<clampedCount).map { index in
+            let time = CMTime(seconds: Double(index) * interval, preferredTimescale: 600)
             return NSValue(time: time)
         }
 
@@ -32,7 +32,7 @@ final class ThumbnailGenerator {
             var completedCount = 0
             let expectedCount = times.count
 
-            generator.generateCGImagesAsynchronously(forTimes: times) { requestedTime, cgImage, _, result, error in
+            generator.generateCGImagesAsynchronously(forTimes: times) { requestedTime, cgImage, _, result, _ in
                 if let cgImage = cgImage, result == .succeeded {
                     if let index = times.firstIndex(where: { CMTimeCompare($0.timeValue, requestedTime) == 0 }) {
                         let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))

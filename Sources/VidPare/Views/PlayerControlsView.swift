@@ -1,5 +1,5 @@
-import SwiftUI
 import AVFoundation
+import SwiftUI
 
 struct PlayerControlsView: View {
     let currentTime: CMTime

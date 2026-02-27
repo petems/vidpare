@@ -1,6 +1,6 @@
-import XCTest
 import AVFoundation
 @testable import VidPare
+import XCTest
 
 final class TimeFormatterTests: XCTestCase {
 

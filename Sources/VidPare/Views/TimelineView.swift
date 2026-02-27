@@ -1,5 +1,5 @@
-import SwiftUI
 import AVFoundation
+import SwiftUI
 
 struct TimelineView: View {
     let thumbnails: [NSImage]
@@ -9,8 +9,8 @@ struct TimelineView: View {
     var onSeek: (CMTime) -> Void
 
     private var totalSeconds: Double {
-        let s = CMTimeGetSeconds(duration)
-        return s.isFinite && s > 0 ? s : 1
+        let durationSeconds = CMTimeGetSeconds(duration)
+        return durationSeconds.isFinite && durationSeconds > 0 ? durationSeconds : 1
     }
 
     var body: some View {

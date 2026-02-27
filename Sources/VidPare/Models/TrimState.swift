@@ -7,8 +7,8 @@ final class TrimState {
     var startTime: CMTime = .zero
     var endTime: CMTime = .zero
     var duration: CMTime {
-        let d = CMTimeSubtract(endTime, startTime)
-        return CMTimeCompare(d, .zero) > 0 ? d : .zero
+        let durationDelta = CMTimeSubtract(endTime, startTime)
+        return CMTimeCompare(durationDelta, .zero) > 0 ? durationDelta : .zero
     }
 
     var exportFormat: ExportFormat = .mp4H264

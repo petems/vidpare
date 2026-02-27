@@ -1,7 +1,7 @@
-import XCTest
 import AVFoundation
 import UniformTypeIdentifiers
 @testable import VidPare
+import XCTest
 
 final class VideoEngineTests: XCTestCase {
 
@@ -116,7 +116,10 @@ final class VideoEngineTests: XCTestCase {
         let estimate = VideoEngine.estimateOutputSize(
             fileSize: 100_000_000,
             videoDuration: CMTime(seconds: 60, preferredTimescale: 600),
-            trimRange: CMTimeRange(start: CMTime(seconds: 40, preferredTimescale: 600), end: CMTime(seconds: 10, preferredTimescale: 600)),
+            trimRange: CMTimeRange(
+                start: CMTime(seconds: 40, preferredTimescale: 600),
+                end: CMTime(seconds: 10, preferredTimescale: 600)
+            ),
             quality: .passthrough
         )
         // Negative trim results in clamped ratio of 0

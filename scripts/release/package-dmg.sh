@@ -15,6 +15,11 @@ if [[ ! -d "${APP_PATH}" ]]; then
 fi
 
 rm -rf "${STAGING_DIR}" "${DMG_PATH}"
+cleanup() {
+  rm -rf "${STAGING_DIR}"
+}
+trap cleanup EXIT
+
 mkdir -p "${STAGING_DIR}"
 cp -R "${APP_PATH}" "${STAGING_DIR}/"
 ln -s /Applications "${STAGING_DIR}/Applications"

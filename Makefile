@@ -71,7 +71,7 @@ open: build ## Build and open the debug binary
 # ── Package & Release ────────────────────────────────────────────────
 
 .PHONY: package-dmg
-package-dmg: ## Create DMG installer (requires prior build-universal)
+package-dmg: build-universal ## Create DMG installer
 	./scripts/release/package-dmg.sh
 
 .PHONY: sign

@@ -159,11 +159,7 @@ struct ExportSheet: View {
 
     private func startExport() {
         let savePanel = NSSavePanel()
-        savePanel.allowedContentTypes = [
-            trimState.exportFormat.fileExtension == "mp4"
-                ? .mpeg4Movie
-                : .quickTimeMovie
-        ]
+        savePanel.allowedContentTypes = [trimState.exportFormat.contentType]
         savePanel.nameFieldStringValue = exportFileName()
         savePanel.canCreateDirectories = true
 

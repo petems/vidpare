@@ -1,5 +1,6 @@
 import XCTest
 import AVFoundation
+import UniformTypeIdentifiers
 @testable import VidPare
 
 final class VideoEngineTests: XCTestCase {
@@ -138,6 +139,12 @@ final class VideoEngineTests: XCTestCase {
 
         // Long video: capped at 60
         XCTAssertEqual(ThumbnailGenerator.thumbnailCount(forDuration: 300), 60)
+    }
+
+    func testExportFormatContentTypes() {
+        XCTAssertEqual(ExportFormat.mp4H264.contentType, .mpeg4Movie)
+        XCTAssertEqual(ExportFormat.mp4HEVC.contentType, .mpeg4Movie)
+        XCTAssertEqual(ExportFormat.movH264.contentType, .quickTimeMovie)
     }
 
     func testTrimStateInvalidOrderDuration() {

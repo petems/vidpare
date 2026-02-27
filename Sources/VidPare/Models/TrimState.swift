@@ -1,4 +1,5 @@
 import AVFoundation
+import UniformTypeIdentifiers
 
 @Observable
 final class TrimState {
@@ -41,6 +42,13 @@ enum ExportFormat: String, CaseIterable, Identifiable {
         switch self {
         case .mp4H264, .mp4HEVC: return "mp4"
         case .movH264: return "mov"
+        }
+    }
+
+    var contentType: UTType {
+        switch self {
+        case .mp4H264, .mp4HEVC: return .mpeg4Movie
+        case .movH264: return .quickTimeMovie
         }
     }
 

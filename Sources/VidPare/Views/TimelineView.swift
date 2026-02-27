@@ -120,7 +120,7 @@ struct TimelineView: View {
             .gesture(
                 DragGesture()
                     .onChanged { value in
-                        let newX = isStart ? (x + value.translation.width + 12) : (x + value.translation.width)
+                        let newX = value.location.x
                         let fraction = max(0, min(1, newX / width))
                         let newTime = CMTime(seconds: fraction * totalSeconds, preferredTimescale: 600)
 

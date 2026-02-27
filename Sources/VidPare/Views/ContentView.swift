@@ -210,6 +210,8 @@ struct ContentView: View {
                 self.document = doc
                 if accessing { currentSecurityScopedURL = url }
                 trimState.reset(for: doc.duration)
+                trimState.exportFormat = doc.passthroughContainerFormat
+                trimState.qualityPreset = .passthrough
 
                 // Set up player
                 let playerItem = AVPlayerItem(asset: doc.asset)

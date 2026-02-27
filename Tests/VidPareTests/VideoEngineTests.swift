@@ -367,4 +367,129 @@ final class VideoEngineTests: XCTestCase {
         XCTAssertFalse(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.avi")))
         XCTAssertFalse(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.webm")))
     }
+
+    // MARK: - ExportCapabilities
+
+    func testCapabilitiesResolve_hevcPassthroughPromotesToReencodeWhenSourceIsNotHEVC() {
+        let capabilities = ExportCapabilities(
+            sourceContainerFormat: .mp4H264,
+            sourceIsHEVC: false,
+            supportMatrix: supportMatrix(
+                overrides: [
+                    (.passthrough, .mp4H264, .supported),
+                    (.high, .mp4H264, .supported),
+                    (.high, .mp4HEVC, .supported)
+                ]
+            )
+        )
+
+        let resolved = capabilities.resolvedSelection(
+            requestedFormat: .mp4HEVC,
+            requestedQuality: .passthrough
+        )
+
+        XCTAssertEqual(resolved.format, .mp4HEVC)
+        XCTAssertEqual(resolved.quality, .high)
+        XCTAssertNotNil(resolved.adjustmentReason)
+    }
+
+    func testCapabilitiesResolve_fallsBackToSupportedFormatAtRequestedQuality() {
+        let capabilities = ExportCapabilities(
+            sourceContainerFormat: .mp4H264,
+            sourceIsHEVC: true,
+            supportMatrix: supportMatrix(
+                overrides: [
+                    (.high, .mp4H264, .supported),
+                    (.high, .movH264, .supported)
+                ]
+            )
+        )
+
+        let resolved = capabilities.resolvedSelection(
+            requestedFormat: .mp4HEVC,
+            requestedQuality: .high
+        )
+
+        XCTAssertEqual(resolved.quality, .high)
+        XCTAssertEqual(resolved.format, .mp4H264)
+    }
+
+    func testCapabilitiesResolve_fallsBackToFirstSupportedQualityWhenRequestedQualityUnavailable() {
+        let capabilities = ExportCapabilities(
+            sourceContainerFormat: .movH264,
+            sourceIsHEVC: false,
+            supportMatrix: supportMatrix(
+                overrides: [
+                    (.medium, .movH264, .supported)
+                ]
+            )
+        )
+
+        let resolved = capabilities.resolvedSelection(
+            requestedFormat: .mp4HEVC,
+            requestedQuality: .high
+        )
+
+        XCTAssertEqual(resolved.quality, .medium)
+        XCTAssertEqual(resolved.format, .movH264)
+    }
+
+    func testCapabilitiesSupportedFormats_filtersUnsupportedOptions() {
+        let capabilities = ExportCapabilities(
+            sourceContainerFormat: .mp4H264,
+            sourceIsHEVC: false,
+            supportMatrix: supportMatrix(
+                overrides: [
+                    (.high, .mp4H264, .supported),
+                    (.high, .movH264, .supported)
+                ]
+            )
+        )
+
+        XCTAssertEqual(capabilities.supportedFormats(for: .high), [.mp4H264, .movH264])
+        XCTAssertTrue(capabilities.supportedFormats(for: .passthrough).isEmpty)
+    }
+
+    // MARK: - Output cleanup safety
+
+    func testShouldRemoveOutputOnFailure_whenOutputDidNotExist_removesFile() {
+        XCTAssertTrue(VideoEngine.shouldRemoveOutputOnFailure(outputExistedBeforeExport: false))
+    }
+
+    func testShouldRemoveOutputOnFailure_whenOutputExisted_doesNotRemoveFile() {
+        XCTAssertFalse(VideoEngine.shouldRemoveOutputOnFailure(outputExistedBeforeExport: true))
+    }
+
+    // MARK: - Capability preflight
+
+    func testBuildCapabilities_passthroughOnlySupportsSourceContainer() {
+        let asset = AVURLAsset(url: URL(fileURLWithPath: "/tmp/nonexistent.mp4"))
+        let capabilities = VideoEngine.buildCapabilities(
+            asset: asset,
+            sourceFileType: .mov,
+            sourceIsHEVC: false
+        )
+
+        XCTAssertEqual(capabilities.sourceContainerFormat, .movH264)
+        XCTAssertFalse(capabilities.support(for: .mp4H264, quality: .passthrough).isSupported)
+    }
+}
+
+private func supportMatrix(
+    overrides: [(QualityPreset, ExportFormat, ExportSupport)]
+) -> [QualityPreset: [ExportFormat: ExportSupport]] {
+    var matrix: [QualityPreset: [ExportFormat: ExportSupport]] = [:]
+    for quality in QualityPreset.allCases {
+        var row: [ExportFormat: ExportSupport] = [:]
+        for format in ExportFormat.allCases {
+            row[format] = .unsupported("Unsupported")
+        }
+        matrix[quality] = row
+    }
+
+    for (quality, format, support) in overrides {
+        matrix[quality]?[format] = support
+    }
+
+    return matrix
 }

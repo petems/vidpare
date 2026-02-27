@@ -6,67 +6,112 @@ A lightweight native macOS video trimmer built with Swift, SwiftUI, and AVFounda
 
 Web-based video trimming tools impose file size limits, require uploads, and rely on slow WASM-based processing. VidPare uses macOS-native AVFoundation for hardware-accelerated video operations, including passthrough remux (near-instant, lossless trimming without re-encoding).
 
-## Features (MVP)
+## Features
 
 - Open MP4, MOV, M4V files via drag-and-drop or file picker
 - Video preview with scrubbing
 - Timeline with thumbnail strip and draggable trim handles
 - Export formats: MP4 (H.264), MOV (H.264), MP4 (HEVC)
-- Quality presets: Passthrough (default, fastest), High, Medium, Low
+- Quality presets: Passthrough (default), High, Medium, Low
+- Export capability preflight based on current Mac + source media
 - Estimated output size in export dialog
-- No file size limit
 
-## Requirements
+## Platform Support
 
 - macOS 14 (Sonoma) or later
-- Xcode 15+
+- Universal binary releases for both:
+  - Apple Silicon (`arm64`)
+  - Intel (`x86_64`)
+
+## Codec Notes (Cross-Hardware)
+
+- HEVC export support is capability-driven and can differ by machine.
+- Passthrough keeps the source container and source codec.
+- If a selected format/quality combination is not supported on the current Mac, VidPare disables it and explains why in the export sheet.
 
 ## Architecture
 
 ```text
 SwiftUI Shell (views, timeline, export UI)
     |
-VideoEngine (AVAsset, AVMutableComposition, AVAssetExportSession)
+VideoEngine (capability preflight, trim/export, progress)
     |
-AVFoundation (Apple, hardware-accelerated via VideoToolbox)
+AVFoundation + VideoToolbox
 ```
 
-No ffmpeg. No Electron. No WASM.
+## Local Development
 
-## Building & Running
-
-### With Xcode
-
-Open the project directory in Xcode (`File > Open...` on the repo root) — Xcode natively recognizes the `Package.swift` and provides full IDE support including signing and entitlements. Build with **Cmd+B** and run with **Cmd+R**.
-
-### From the command line
-
-Build:
+### Build
 
 ```bash
 swift build
 ```
 
-Run the app directly:
+### Run
 
 ```bash
 .build/debug/VidPare
 ```
 
-For an optimized release build:
-
-```bash
-swift build -c release
-.build/release/VidPare
-```
-
-### Running tests
+### Tests
 
 ```bash
 swift test
 ```
 
-The app targets macOS 14+ with local development signing.
+### Cross-Architecture Checks (Apple Silicon Hosts)
+
+Build x86_64 target:
+
+```bash
+swift build -c release --triple x86_64-apple-macosx14.0
+```
+
+Run x86_64 tests under Rosetta:
+
+```bash
+arch -x86_64 swift test --triple x86_64-apple-macosx14.0
+```
+
+## Release (Universal App + Notarized DMG)
+
+Build universal app bundle:
+
+```bash
+VERSION=0.1.0 ./scripts/release/build-universal.sh
+```
+
+Sign and notarize app:
+
+```bash
+./scripts/release/sign-and-notarize.sh dist/VidPare.app
+```
+
+Package DMG:
+
+```bash
+VERSION=0.1.0 ./scripts/release/package-dmg.sh
+```
+
+Sign and notarize DMG:
+
+```bash
+./scripts/release/sign-and-notarize.sh dist/VidPare-0.1.0.dmg
+```
+
+Detailed release instructions are in [docs/release.md](docs/release.md).
+
+## CI/CD
+
+- PR/branch CI: `.github/workflows/ci.yml`
+  - arm64 build + tests
+  - x86_64 build
+  - x86_64 tests under Rosetta
+  - optional native Intel smoke job
+- Tagged release pipeline: `.github/workflows/release.yml`
+  - build universal app
+  - sign/notarize app and DMG
+  - publish DMG to GitHub Releases
 
 ## License
 

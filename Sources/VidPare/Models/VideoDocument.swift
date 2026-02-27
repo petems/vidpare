@@ -24,6 +24,21 @@ final class VideoDocument {
         codecName == "HEVC (H.265)"
     }
 
+    var sourceFileType: AVFileType {
+        switch url.pathExtension.lowercased() {
+        case "mov":
+            return .mov
+        case "m4v":
+            return .m4v
+        default:
+            return .mp4
+        }
+    }
+
+    var passthroughContainerFormat: ExportFormat {
+        ExportFormat.passthroughContainerFormat(sourceFileType: sourceFileType, sourceIsHEVC: isHEVC)
+    }
+
     init(url: URL) {
         self.url = url
         self.asset = AVURLAsset(url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])

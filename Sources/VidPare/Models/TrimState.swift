@@ -64,6 +64,30 @@ enum ExportFormat: String, CaseIterable, Identifiable {
     var isHEVC: Bool {
         self == .mp4HEVC
     }
+
+    var containerLabel: String {
+        switch fileType {
+        case .mov:
+            return "MOV"
+        default:
+            return "MP4"
+        }
+    }
+
+    static func passthroughContainerFormat(sourceFileType: AVFileType?, sourceIsHEVC: Bool) -> ExportFormat {
+        guard let sourceFileType else {
+            return sourceIsHEVC ? .mp4HEVC : .mp4H264
+        }
+
+        switch sourceFileType {
+        case .mov:
+            return .movH264
+        case .m4v:
+            return sourceIsHEVC ? .mp4HEVC : .mp4H264
+        default:
+            return sourceIsHEVC ? .mp4HEVC : .mp4H264
+        }
+    }
 }
 
 enum QualityPreset: String, CaseIterable, Identifiable {

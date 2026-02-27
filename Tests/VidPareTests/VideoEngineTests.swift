@@ -381,16 +381,6 @@ final class VideoEngineTests: XCTestCase {
         XCTAssertTrue(capabilities.supportedFormats(for: .passthrough).isEmpty)
     }
 
-    // MARK: - Output cleanup safety
-
-    func testShouldRemoveOutputOnFailure_whenOutputDidNotExist_removesFile() {
-        XCTAssertTrue(VideoEngine.shouldRemoveOutputOnFailure(outputExistedBeforeExport: false))
-    }
-
-    func testShouldRemoveOutputOnFailure_whenOutputExisted_doesNotRemoveFile() {
-        XCTAssertFalse(VideoEngine.shouldRemoveOutputOnFailure(outputExistedBeforeExport: true))
-    }
-
     // MARK: - Capability preflight
 
     func testBuildCapabilities_passthroughOnlySupportsSourceContainer() {

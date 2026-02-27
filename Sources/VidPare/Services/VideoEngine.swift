@@ -189,10 +189,6 @@ final class VideoEngine {
         )
     }
 
-    nonisolated static func shouldRemoveOutputOnFailure(outputExistedBeforeExport: Bool) -> Bool {
-        !outputExistedBeforeExport
-    }
-
     // MARK: - Private
 
     private func resetExportState() {

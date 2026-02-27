@@ -440,8 +440,8 @@ final class VideoEngineTests: XCTestCase {
             sourceIsHEVC: false,
             supportMatrix: supportMatrix(
                 overrides: [
-                    (.high, .mp4H264, .supported),
-                    (.high, .movH264, .supported)
+                    SupportOverride(quality: .high, format: .mp4H264, support: .supported),
+                    SupportOverride(quality: .high, format: .movH264, support: .supported)
                 ]
             )
         )
@@ -475,8 +475,14 @@ final class VideoEngineTests: XCTestCase {
     }
 }
 
+private struct SupportOverride {
+    let quality: QualityPreset
+    let format: ExportFormat
+    let support: ExportSupport
+}
+
 private func supportMatrix(
-    overrides: [(QualityPreset, ExportFormat, ExportSupport)]
+    overrides: [SupportOverride]
 ) -> [QualityPreset: [ExportFormat: ExportSupport]] {
     var matrix: [QualityPreset: [ExportFormat: ExportSupport]] = [:]
     for quality in QualityPreset.allCases {
@@ -487,8 +493,8 @@ private func supportMatrix(
         matrix[quality] = row
     }
 
-    for (quality, format, support) in overrides {
-        matrix[quality]?[format] = support
+    for override in overrides {
+        matrix[override.quality]?[override.format] = override.support
     }
 
     return matrix

@@ -42,7 +42,6 @@ struct ContentView: View {
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers: providers)
-            return true
         }
         .alert("Error", isPresented: $showError) {
             Button("OK") {}
@@ -210,8 +209,11 @@ struct ContentView: View {
         }
     }
 
-    private func handleDrop(providers: [NSItemProvider]) {
-        guard let provider = providers.first else { return }
+    private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        guard let provider = providers.first,
+              provider.registeredTypeIdentifiers.contains(UTType.fileURL.identifier) else {
+            return false
+        }
         provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
             guard let data = item as? Data,
                   let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
@@ -219,6 +221,7 @@ struct ContentView: View {
                 loadVideo(url: url)
             }
         }
+        return true
     }
 
     private func generateThumbnails(for doc: VideoDocument) async {

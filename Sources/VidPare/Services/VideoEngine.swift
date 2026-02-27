@@ -48,6 +48,7 @@ final class VideoEngine {
 
             guard session.status == .completed else {
                 self.isExporting = false
+                try? FileManager.default.removeItem(at: outputURL)
                 if session.status == .cancelled {
                     throw ExportError.cancelled
                 }
@@ -65,6 +66,7 @@ final class VideoEngine {
         } catch {
             stopProgressPolling()
             self.isExporting = false
+            try? FileManager.default.removeItem(at: outputURL)
             throw error
         }
     }

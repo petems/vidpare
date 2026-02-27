@@ -10,7 +10,6 @@
 | **Codec Semantics**        | `ExportFormat` names imply codec control (e.g., `.mp4HEVC`), but only the container is set. `AVAssetExportSession` may not guarantee the codec without `AVAssetWriter`. |
 | **Fragile Index Lookup**   | `times.firstIndex` using `CMTimeCompare` can miss due to rounding. Use an enumerated index instead.                                                                     |
 | **Incompatibility**        | Passthrough + incompatible container (e.g., ProRes `.mov` -> `.mp4`) will fail. UI should prevent this.                                                                 |
-| **@MainActor Missing**     | `VideoEngine.export()` mutates `@Observable` properties from async contexts. Needs `@MainActor` for thread safety.                                                      |
 
 ## Testing Gaps
 
@@ -32,32 +31,24 @@ Current tests (`TimeFormatterTests`, `VideoEngineTests`) are purposeful but mini
 
 ### Phase 3: Nice to Have
 
-8. Annotate `VideoEngine` with `@MainActor`.
-9. Apply `preferredTransform` to `naturalSize` for rotated videos.
-10. Update format picker UX to show "Same as source" during passthrough.
+8. Apply `preferredTransform` to `naturalSize` for rotated videos.
+9. Update format picker UX to show "Same as source" during passthrough.
 
 ## Codex Report
 
-> Note: Some of these findings may have already been addressed.
-
-### Findings (Ordered by Severity)
+### Open Findings (Ordered by Severity)
 
 **[P0] Potential user data loss on failed export path cleanup**
 Unconditional cleanup deletes whatever is at the chosen output path on failure/cancel, which can remove pre-existing user files if they selected an existing filename.
-File: `VideoEngine.swift:52` and `VideoEngine.swift:70`
+File: `VideoEngine.swift:69` and `VideoEngine.swift:87`
 
 **[P1] Timeline drag math likely incorrect for handle gestures**
 `DragGesture` uses `value.location.x` from the handle's local gesture context, then divides by full timeline width. That usually produces wrong/unstable trim movement rather than true timeline-relative dragging.
 File: `TimelineView.swift:120`
 
-**[P1] MVP verification claims trim-restricted playback, but implementation doesn't enforce it**
-Plan says playback should loop/restrict to trim region, but periodic observer only mirrors time/rate and never clamps at endTime or seeks back to startTime.
-Files: `mvp-plan.md:129`, `ContentView.swift:257`
-*Status: Fixed in commit `17c3551` — time observer now clamps playback at endTime and loops to startTime.*
-
 **[P1] Passthrough + fixed output type can fail for valid sources**
 In passthrough, format picker is disabled, but export still uses `trimState.exportFormat.fileType` (default MP4), which can be incompatible with source/container combinations. No compatibility preflight with `supportedFileTypes`.
-Files: `ExportSheet.swift:57`, `VideoEngine.swift:34`
+Files: `ExportSheet.swift:58`, `VideoEngine.swift:35`
 
 **[P2] Concurrency warning in thumbnail generation (Sendable capture)**
 Build emits a Sendable warning for captured `[NSValue]` in async callback closure. This can become stricter with compiler/language mode upgrades.
@@ -65,7 +56,17 @@ File: `ThumbnailGenerator.swift:37`
 
 **[P2] Load race when opening files quickly**
 `loadVideo` launches async work without cancellation/identity checks; an earlier task can finish after a later one and overwrite state with stale doc/player/thumbnails.
-File: `ContentView.swift:201`
+File: `ContentView.swift:207`
+
+### Resolved Findings
+
+**[P1] MVP verification claims trim-restricted playback, but implementation doesn't enforce it**
+*Fixed in commit `17c3551`* — time observer now clamps playback at endTime and loops to startTime.
+Files: `mvp-plan.md:129`, `ContentView.swift:267`
+
+**@MainActor Missing on VideoEngine**
+*Fixed in commit `6361195`* — `VideoEngine` annotated as `@MainActor`; progress polling no longer uses `DispatchQueue.main.async` wrappers.
+File: `VideoEngine.swift`
 
 ### What's Good
 

@@ -35,6 +35,11 @@ brew install swift-format swiftlint
   Format all code to match project style.
 - `swiftlint`
   Run static analysis and style checks.
+- Always Before pushing code to the remote, check it:
+  - `swift build -v` - Build it
+  - `swiftlint` - Lint it
+  - `swift test` - Run unit tests
+  - Where possible this should be done to avoid breaking the build!
 
 ### Product Website (`site/`)
 

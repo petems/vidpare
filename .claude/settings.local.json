@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(swiftlint lint:*)",
+      "Bash(swift build:*)",
+      "Bash(swift test:*)"
+    ]
+  }
+}

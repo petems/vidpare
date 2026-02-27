@@ -15,7 +15,10 @@ let package = Package(
         .testTarget(
             name: "VidPareTests",
             dependencies: ["VidPare"],
-            path: "Tests/VidPareTests"
+            path: "Tests/VidPareTests",
+            resources: [
+                .process("Fixtures")
+            ]
         )
     ]
 )

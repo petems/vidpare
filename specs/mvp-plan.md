@@ -126,7 +126,7 @@ vidpare/
 
 - Open MP4, MOV, M4V files via drag-and-drop and file picker
 - Scrub through video using timeline; verify thumbnail strip renders correctly
-- Set in/out trim points; verify playback loops/restricts to trimmed region
+- Set in/out trim points; verify playback loops/restricts to trimmed region (implemented: time observer clamps playback at endTime and loops to startTime)
 - Export with passthrough preset; verify output plays correctly and export completes fast
 - Export with re-encode (H.264 High); verify output plays and is smaller than source
 - Export as HEVC; verify output plays in QuickTime

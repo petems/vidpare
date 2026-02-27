@@ -23,6 +23,10 @@ final class TrimState {
         endTime = sanitized
     }
 
+    func isAtOrPastEnd(_ time: CMTime) -> Bool {
+        CMTimeCompare(time, endTime) >= 0
+    }
+
     var trimRange: CMTimeRange {
         let clampedEnd = CMTimeCompare(endTime, startTime) > 0 ? endTime : startTime
         return CMTimeRange(start: startTime, end: clampedEnd)

@@ -234,6 +234,36 @@ final class VideoEngineTests: XCTestCase {
         }
     }
 
+    // MARK: - TrimState.isAtOrPastEnd
+
+    func testIsAtOrPastEnd_beforeEnd() {
+        let state = TrimState()
+        state.startTime = .zero
+        state.endTime = CMTime(seconds: 10, preferredTimescale: 600)
+        XCTAssertFalse(state.isAtOrPastEnd(CMTime(seconds: 5, preferredTimescale: 600)))
+    }
+
+    func testIsAtOrPastEnd_atEnd() {
+        let state = TrimState()
+        state.startTime = .zero
+        state.endTime = CMTime(seconds: 10, preferredTimescale: 600)
+        XCTAssertTrue(state.isAtOrPastEnd(CMTime(seconds: 10, preferredTimescale: 600)))
+    }
+
+    func testIsAtOrPastEnd_pastEnd() {
+        let state = TrimState()
+        state.startTime = .zero
+        state.endTime = CMTime(seconds: 10, preferredTimescale: 600)
+        XCTAssertTrue(state.isAtOrPastEnd(CMTime(seconds: 15, preferredTimescale: 600)))
+    }
+
+    func testIsAtOrPastEnd_atStart() {
+        let state = TrimState()
+        state.startTime = .zero
+        state.endTime = CMTime(seconds: 10, preferredTimescale: 600)
+        XCTAssertFalse(state.isAtOrPastEnd(.zero))
+    }
+
     func testVideoDocumentSupportedTypes() {
         XCTAssertTrue(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.mp4")))
         XCTAssertTrue(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.MOV")))

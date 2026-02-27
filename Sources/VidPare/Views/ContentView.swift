@@ -257,6 +257,10 @@ struct ContentView: View {
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { time in
             self.currentTime = time
             self.isPlaying = player.rate > 0
+            if self.isPlaying && self.trimState.isAtOrPastEnd(time) {
+                self.player.pause()
+                self.seek(to: self.trimState.startTime)
+            }
         }
     }
 
@@ -271,6 +275,9 @@ struct ContentView: View {
         if player.rate > 0 {
             player.pause()
         } else {
+            if trimState.isAtOrPastEnd(currentTime) {
+                seek(to: trimState.startTime)
+            }
             player.play()
         }
         isPlaying = player.rate > 0

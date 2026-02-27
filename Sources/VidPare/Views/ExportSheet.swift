@@ -172,7 +172,7 @@ struct ExportSheet: View {
                 exportResult = result
             } catch is CancellationError {
                 // User cancelled, do nothing
-            } catch let error as ExportError where error.localizedDescription.contains("cancelled") {
+            } catch ExportError.cancelled {
                 // Export cancelled
             } catch {
                 errorMessage = error.localizedDescription

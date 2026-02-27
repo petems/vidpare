@@ -70,7 +70,7 @@ resource "cloudflare_pages_domain" "www" {
 
 resource "cloudflare_record" "apex" {
   zone_id = data.cloudflare_zone.vidpare.id
-  name    = "vidpare.app"
+  name    = "@"
   type    = "CNAME"
   content = cloudflare_pages_project.vidpare.subdomain
   proxied = true

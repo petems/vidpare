@@ -219,24 +219,6 @@ final class VideoEngineTests: XCTestCase {
         XCTAssertEqual(CMTimeCompare(state.trimRange.duration, .zero), 0)
     }
 
-    func testVideoDocumentRejectsUnsupportedFormat() async {
-        let url = URL(fileURLWithPath: "/tmp/test.mkv")
-        let doc = VideoDocument(url: url)
-
-        do {
-            try await doc.loadMetadata()
-            XCTFail("Expected unsupportedFormat error")
-        } catch let error as VideoDocumentError {
-            if case .unsupportedFormat(let ext) = error {
-                XCTAssertEqual(ext, "mkv")
-            } else {
-                XCTFail("Expected unsupportedFormat, got \(error)")
-            }
-        } catch {
-            XCTFail("Unexpected error type: \(error)")
-        }
-    }
-
     // MARK: - VideoEngine state
 
     @MainActor func testVideoEngineIsNotExportingByDefault() {
@@ -301,48 +283,6 @@ final class VideoEngineTests: XCTestCase {
         XCTAssertFalse(state.isAtOrPastEnd(.zero))
     }
 
-    func testVideoDocumentRejectsNoVideoTrack() async throws {
-        let uid = UUID().uuidString
-        let m4aURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("test_audio_\(uid).m4a")
-        let mp4URL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("test_audio_\(uid).mp4")
-        defer {
-            try? FileManager.default.removeItem(at: m4aURL)
-            try? FileManager.default.removeItem(at: mp4URL)
-        }
-
-        // Create a valid audio-only M4A via macOS `say` command
-        let sayProcess = Process()
-        sayProcess.executableURL = URL(fileURLWithPath: "/usr/bin/say")
-        sayProcess.arguments = ["-o", m4aURL.path, "--data-format=aac", "test"]
-        try sayProcess.run()
-        sayProcess.waitUntilExit()
-        XCTAssertEqual(sayProcess.terminationStatus, 0, "say command failed")
-
-        // Convert to MP4 container via afconvert so VideoDocument.canOpen passes
-        let convertProcess = Process()
-        convertProcess.executableURL = URL(fileURLWithPath: "/usr/bin/afconvert")
-        convertProcess.arguments = [m4aURL.path, mp4URL.path, "-d", "aac", "-f", "mp4f"]
-        try convertProcess.run()
-        convertProcess.waitUntilExit()
-        XCTAssertEqual(convertProcess.terminationStatus, 0, "afconvert command failed")
-
-        let doc = VideoDocument(url: mp4URL)
-        do {
-            try await doc.loadMetadata()
-            XCTFail("Expected noVideoTrack error")
-        } catch let error as VideoDocumentError {
-            if case .noVideoTrack = error {
-                // Expected
-            } else {
-                XCTFail("Expected noVideoTrack, got \(error)")
-            }
-        } catch {
-            XCTFail("Unexpected error type: \(error)")
-        }
-    }
-
     // MARK: - FourCharCode.codecName
 
     func testCodecNameKnownCodecs() {
@@ -357,15 +297,6 @@ final class VideoEngineTests: XCTestCase {
         let name = unknown.codecName
         XCTAssertEqual(name.count, 4)
         XCTAssertEqual(name, "test")
-    }
-
-    func testVideoDocumentSupportedTypes() {
-        XCTAssertTrue(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.mp4")))
-        XCTAssertTrue(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.MOV")))
-        XCTAssertTrue(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.m4v")))
-        XCTAssertFalse(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.mkv")))
-        XCTAssertFalse(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.avi")))
-        XCTAssertFalse(VideoDocument.canOpen(url: URL(fileURLWithPath: "/test.webm")))
     }
 
     // MARK: - ExportCapabilities

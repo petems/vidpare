@@ -63,12 +63,12 @@ file_length:
   # No option exists to ignore comments here
 
 function_body_length:
-  warning: 80
-  error: 150
+  warning: 60
+  error: 100
 
 cyclomatic_complexity:
-  warning: 15
-  error: 25
+  warning: 12
+  error: 20
 
 nesting:
   type_level:

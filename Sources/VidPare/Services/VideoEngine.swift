@@ -45,24 +45,13 @@ final class VideoEngine {
         sourceURL: URL? = nil,
         sourceFileType: AVFileType? = nil
     ) async throws -> ExportResult {
-        let capabilities = try await preflightCapabilities(
+        let (requestedFormat, requestedQuality) = try await resolveRequestedSelection(
             asset: asset,
+            format: format,
+            quality: quality,
             sourceFileType: sourceFileType,
             sourceIsHEVC: sourceIsHEVC
         )
-
-        let requestedQuality = Self.effectiveQuality(
-            format: format,
-            quality: quality,
-            sourceIsHEVC: sourceIsHEVC
-        )
-        let requestedFormat = requestedQuality.isPassthrough ? capabilities.sourceContainerFormat : format
-
-        guard capabilities.isSupported(format: requestedFormat, quality: requestedQuality) else {
-            let reason = capabilities.support(for: requestedFormat, quality: requestedQuality).reason
-                ?? "This export option is not available on this Mac."
-            throw ExportError.incompatibleSelection(reason)
-        }
 
         let scopedAccess = sourceURL?.startAccessingSecurityScopedResource() ?? false
         defer {
@@ -71,21 +60,14 @@ final class VideoEngine {
             }
         }
 
-        let preset = requestedQuality.exportPreset
         let tempOutputURL = temporaryOutputURL(for: outputURL)
-
-        guard let session = AVAssetExportSession(asset: asset, presetName: preset) else {
-            throw ExportError.sessionCreationFailed
-        }
-
-        session.outputURL = tempOutputURL
-        session.outputFileType = requestedFormat.fileType
-        session.timeRange = trimRange
-
-        self.exportSession = session
-        self.isExporting = true
-        self.progress = 0
-
+        let session = try createExportSession(
+            asset: asset,
+            requestedQuality: requestedQuality,
+            requestedFormat: requestedFormat,
+            trimRange: trimRange,
+            tempOutputURL: tempOutputURL
+        )
         startProgressPolling()
 
         let startDate = Date()
@@ -95,29 +77,13 @@ final class VideoEngine {
             await session.export()
             stopProgressPolling()
 
-            guard session.status == .completed else {
-                self.isExporting = false
-                try? FileManager.default.removeItem(at: tempOutputURL)
-                if session.status == .cancelled {
-                    throw ExportError.cancelled
-                }
-                throw ExportError.exportFailed(session.error?.localizedDescription ?? "Unknown error")
-            }
-
-            let finalizedURL = try finalizeExportedFile(
-                from: tempOutputURL,
-                to: outputURL,
-                destinationExistedBeforeExport: destinationExistedBeforeExport
+            return try finalizeExportResult(
+                session: session,
+                tempOutputURL: tempOutputURL,
+                outputURL: outputURL,
+                destinationExistedBeforeExport: destinationExistedBeforeExport,
+                startDate: startDate
             )
-
-            let elapsed = Date().timeIntervalSince(startDate)
-            let attrs = try? FileManager.default.attributesOfItem(atPath: finalizedURL.path)
-            let fileSize = (attrs?[.size] as? Int64) ?? 0
-
-            self.isExporting = false
-            self.progress = 1.0
-
-            return ExportResult(outputURL: finalizedURL, duration: elapsed, fileSize: fileSize)
         } catch {
             stopProgressPolling()
             self.isExporting = false
@@ -230,6 +196,89 @@ final class VideoEngine {
     }
 
     // MARK: - Private
+
+    private func resolveRequestedSelection(
+        asset: AVURLAsset,
+        format: ExportFormat,
+        quality: QualityPreset,
+        sourceFileType: AVFileType?,
+        sourceIsHEVC: Bool
+    ) async throws -> (ExportFormat, QualityPreset) {
+        let capabilities = try await preflightCapabilities(
+            asset: asset,
+            sourceFileType: sourceFileType,
+            sourceIsHEVC: sourceIsHEVC
+        )
+
+        let requestedQuality = Self.effectiveQuality(
+            format: format,
+            quality: quality,
+            sourceIsHEVC: sourceIsHEVC
+        )
+        let requestedFormat = requestedQuality.isPassthrough ? capabilities.sourceContainerFormat : format
+
+        guard capabilities.isSupported(format: requestedFormat, quality: requestedQuality) else {
+            let reason = capabilities.support(for: requestedFormat, quality: requestedQuality).reason
+                ?? "This export option is not available on this Mac."
+            throw ExportError.incompatibleSelection(reason)
+        }
+
+        return (requestedFormat, requestedQuality)
+    }
+
+    private func createExportSession(
+        asset: AVURLAsset,
+        requestedQuality: QualityPreset,
+        requestedFormat: ExportFormat,
+        trimRange: CMTimeRange,
+        tempOutputURL: URL
+    ) throws -> AVAssetExportSession {
+        guard let session = AVAssetExportSession(asset: asset, presetName: requestedQuality.exportPreset) else {
+            throw ExportError.sessionCreationFailed
+        }
+
+        session.outputURL = tempOutputURL
+        session.outputFileType = requestedFormat.fileType
+        session.timeRange = trimRange
+
+        self.exportSession = session
+        self.isExporting = true
+        self.progress = 0
+
+        return session
+    }
+
+    private func finalizeExportResult(
+        session: AVAssetExportSession,
+        tempOutputURL: URL,
+        outputURL: URL,
+        destinationExistedBeforeExport: Bool,
+        startDate: Date
+    ) throws -> ExportResult {
+        guard session.status == .completed else {
+            self.isExporting = false
+            try? FileManager.default.removeItem(at: tempOutputURL)
+            if session.status == .cancelled {
+                throw ExportError.cancelled
+            }
+            throw ExportError.exportFailed(session.error?.localizedDescription ?? "Unknown error")
+        }
+
+        let finalizedURL = try finalizeExportedFile(
+            from: tempOutputURL,
+            to: outputURL,
+            destinationExistedBeforeExport: destinationExistedBeforeExport
+        )
+
+        let elapsed = Date().timeIntervalSince(startDate)
+        let attrs = try? FileManager.default.attributesOfItem(atPath: finalizedURL.path)
+        let fileSize = (attrs?[.size] as? Int64) ?? 0
+
+        self.isExporting = false
+        self.progress = 1.0
+
+        return ExportResult(outputURL: finalizedURL, duration: elapsed, fileSize: fileSize)
+    }
 
     private func startProgressPolling() {
         progressTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in

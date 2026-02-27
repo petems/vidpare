@@ -39,10 +39,10 @@ jobs:
           echo "Building release for $VERSION"
 
       - name: Build release binary
-        run: swift build -c release -v
+        run: make build-release VERBOSE=1
 
       - name: Run tests (gate)
-        run: swift test -v
+        run: make test VERBOSE=1
 
       - name: Package binary
         run: |

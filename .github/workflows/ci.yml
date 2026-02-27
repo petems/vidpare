@@ -47,7 +47,7 @@ jobs:
         run: brew install swiftlint
 
       - name: Run SwiftLint
-        run: swiftlint lint --strict --reporter github-actions-logging
+        run: make lint-strict REPORTER=github-actions-logging
 
   # ──────────────────────────────────────────────────────────────────────────
   # Job 2: Build & Test matrix across macOS 14 (M1) and macOS 15 (M2)
@@ -95,13 +95,13 @@ jobs:
           fi
 
       - name: Build (debug)
-        run: swift build -v
+        run: make build VERBOSE=1
 
       - name: Build (release)
-        run: swift build -c release -v
+        run: make build-release VERBOSE=1
 
       - name: Run unit tests
-        run: swift test --enable-code-coverage -v
+        run: make test VERBOSE=1 COVERAGE=1
 
       - name: Generate code coverage report
         run: |

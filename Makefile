@@ -5,15 +5,22 @@ BUILD_DIR    := .build
 DEBUG_BIN    := $(BUILD_DIR)/debug/$(APP_NAME)
 RELEASE_BIN  := $(BUILD_DIR)/release/$(APP_NAME)
 
+# CI-friendly overrides (e.g. make build VERBOSE=1, make lint-strict REPORTER=github-actions-logging)
+VERBOSE  ?=
+REPORTER ?=
+COVERAGE ?=
+V_FLAG   := $(if $(VERBOSE),-v)
+COV_FLAG := $(if $(COVERAGE),--enable-code-coverage)
+
 # ── Build ────────────────────────────────────────────────────────────
 
 .PHONY: build
 build: ## Debug build
-	swift build
+	swift build $(V_FLAG)
 
 .PHONY: build-release
 build-release: ## Optimized release build
-	swift build -c release
+	swift build -c release $(V_FLAG)
 
 .PHONY: build-universal
 build-universal: ## Universal (arm64 + x86_64) release build
@@ -27,7 +34,7 @@ lint: ## Run SwiftLint
 
 .PHONY: lint-strict
 lint-strict: ## Run SwiftLint in strict mode (CI)
-	swiftlint lint --strict
+	swiftlint lint --strict $(if $(REPORTER),--reporter $(REPORTER))
 
 .PHONY: format
 format: ## Format all Swift source files in-place
@@ -41,7 +48,7 @@ format-check: ## Check formatting without modifying files
 
 .PHONY: test
 test: ## Run unit tests
-	swift test
+	swift test $(V_FLAG) $(COV_FLAG)
 
 .PHONY: test-verbose
 test-verbose: ## Run unit tests with verbose output

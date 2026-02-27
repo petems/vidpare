@@ -57,15 +57,20 @@ test-verbose: ## Run unit tests with verbose output
 .PHONY: coverage
 coverage: ## Run tests with code coverage and generate LCOV report
 	swift test --enable-code-coverage -v
-	@PROF_DATA=$$(swift test --show-codecov-path); \
-	if [ -z "$$PROF_DATA" ]; then \
-		echo "Error: Failed to get code coverage path." >&2; \
+	@PROF_DATA="$(BUILD_DIR)/debug/codecov/default.profdata"; \
+	TEST_BIN="$(BUILD_DIR)/debug/VidParePackageTests.xctest"; \
+	if [ ! -f "$$PROF_DATA" ]; then \
+		echo "Error: profdata not found at $$PROF_DATA" >&2; \
+		exit 1; \
+	fi; \
+	if [ ! -f "$$TEST_BIN" ]; then \
+		echo "Error: test bundle not found at $$TEST_BIN" >&2; \
 		exit 1; \
 	fi; \
 	xcrun llvm-cov export \
 	  -format="lcov" \
-	  -instr-profile="$$(echo $$PROF_DATA | sed 's|codecov/.*|profdata/merged/default.profdata|')" \
-	  "$(DEBUG_BIN)" \
+	  -instr-profile="$$PROF_DATA" \
+	  "$$TEST_BIN" \
 	  > $(BUILD_DIR)/coverage.lcov && \
 	echo "Coverage report: $(BUILD_DIR)/coverage.lcov"
 
@@ -112,6 +117,9 @@ clean: ## Remove build artifacts
 .PHONY: resolve
 resolve: ## Resolve package dependencies
 	swift package resolve
+
+.PHONY: all
+all: check ## Alias for check (tool compatibility)
 
 .PHONY: check
 check: lint build test ## Run lint, build, and tests (pre-push check)

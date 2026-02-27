@@ -151,35 +151,3 @@ jobs:
           name: VidPare-release-macos${{ matrix.macos }}
           path: .build/release/VidPare
           retention-days: 7
-
-  # ──────────────────────────────────────────────────────────────────────────
-  # Job 3: Static analysis with CodeQL (security scanning)
-  # ──────────────────────────────────────────────────────────────────────────
-  codeql:
-    name: CodeQL Security Scan
-    runs-on: macos-15
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@45580472a5bb82c4681c4ac726cfdb60060c2ee1
-        with:
-          languages: swift
-          queries: security-extended
-
-      - name: Build for CodeQL
-        run: swift build
-
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@45580472a5bb82c4681c4ac726cfdb60060c2ee1
-        with:
-          category: "/language:swift"

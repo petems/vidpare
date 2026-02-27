@@ -3,7 +3,7 @@ variable "cloudflare_account_id" {
   type        = string
 
   validation {
-    condition     = trim(var.cloudflare_account_id) != ""
+    condition     = trimspace(var.cloudflare_account_id) != ""
     error_message = "cloudflare_account_id must be a non-empty string."
   }
 }
@@ -14,7 +14,7 @@ variable "cloudflare_api_token" {
   sensitive   = true
 
   validation {
-    condition     = trim(var.cloudflare_api_token) != ""
+    condition     = trimspace(var.cloudflare_api_token) != ""
     error_message = "cloudflare_api_token must be a non-empty string."
   }
 }

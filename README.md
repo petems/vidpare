@@ -33,12 +33,37 @@ AVFoundation (Apple, hardware-accelerated via VideoToolbox)
 
 No ffmpeg. No Electron. No WASM.
 
-## Building
+## Building & Running
 
-Open the project directory in Xcode (`File > Open...` on the repo root) — Xcode natively recognizes the `Package.swift` and provides full IDE support including signing and entitlements. Build with Cmd+B. Alternatively, build from the command line:
+### With Xcode
+
+Open the project directory in Xcode (`File > Open...` on the repo root) — Xcode natively recognizes the `Package.swift` and provides full IDE support including signing and entitlements. Build with **Cmd+B** and run with **Cmd+R**.
+
+### From the command line
+
+Build:
 
 ```bash
 swift build
+```
+
+Run the app directly:
+
+```bash
+.build/debug/VidPare
+```
+
+For an optimized release build:
+
+```bash
+swift build -c release
+.build/release/VidPare
+```
+
+### Running tests
+
+```bash
+swift test
 ```
 
 The app targets macOS 14+ with local development signing.

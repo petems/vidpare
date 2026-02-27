@@ -26,11 +26,14 @@ final class ThumbnailGenerator {
             return (index, time)
         }
         let requestTimes = indexedTimes.map { NSValue(time: $0.time) }
-        let timeIndexByValue = Dictionary(uniqueKeysWithValues: indexedTimes.map { ($0.time.value, $0.index) })
+        let initialIndicesByTimeValue = indexedTimes.reduce(into: [CMTimeValue: [Int]]()) { partialResult, item in
+            partialResult[item.time.value, default: []].append(item.index)
+        }
 
         return try await withCheckedThrowingContinuation { continuation in
             let stateQueue = DispatchQueue(label: "vidpare.thumbnail-generator.state")
             var images: [Int: NSImage] = [:]
+            var pendingIndicesByTimeValue = initialIndicesByTimeValue
             var completedCount = 0
             let expectedCount = requestTimes.count
             var didResume = false
@@ -42,7 +45,10 @@ final class ThumbnailGenerator {
 
                     if let cgImage = cgImage,
                        result == .succeeded,
-                       let index = timeIndexByValue[requestedTime.value] {
+                       var indices = pendingIndicesByTimeValue[requestedTime.value],
+                       let index = indices.first {
+                        indices.removeFirst()
+                        pendingIndicesByTimeValue[requestedTime.value] = indices
                         let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
                         images[index] = nsImage
                     } else if result == .failed, firstError == nil {

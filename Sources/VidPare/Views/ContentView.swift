@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var showError = false
     @State private var timeObserver: Any?
     @State private var isLoadingThumbnails = false
+    @State private var currentSecurityScopedURL: URL?
 
     var body: some View {
         Group {
@@ -80,6 +81,10 @@ struct ContentView: View {
         .navigationTitle(windowTitle)
         .onDisappear {
             removeTimeObserver()
+            if let url = currentSecurityScopedURL {
+                url.stopAccessingSecurityScopedResource()
+                currentSecurityScopedURL = nil
+            }
         }
     }
 
@@ -186,14 +191,18 @@ struct ContentView: View {
         // Start accessing security-scoped resource
         let accessing = url.startAccessingSecurityScopedResource()
 
+        // Release previous security-scoped access
+        if let previousURL = currentSecurityScopedURL {
+            previousURL.stopAccessingSecurityScopedResource()
+            currentSecurityScopedURL = nil
+        }
+
         let doc = VideoDocument(url: url)
         Task {
             do {
-                defer {
-                    if accessing { url.stopAccessingSecurityScopedResource() }
-                }
                 try await doc.loadMetadata()
                 self.document = doc
+                if accessing { currentSecurityScopedURL = url }
                 trimState.reset(for: doc.duration)
 
                 // Set up player
@@ -204,6 +213,7 @@ struct ContentView: View {
                 // Generate thumbnails
                 await generateThumbnails(for: doc)
             } catch {
+                if accessing { url.stopAccessingSecurityScopedResource() }
                 showError(error.localizedDescription)
             }
         }

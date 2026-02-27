@@ -478,8 +478,9 @@ final class VideoEngineExportLifecycleTests: XCTestCase {
             .appendingPathComponent("vidpare-nonexistent-\(UUID().uuidString)")
         let outputURL = nonExistentDir.appendingPathComponent("output.mp4")
 
+        let engine = VideoEngine()
         do {
-            _ = try await VideoEngine().export(
+            _ = try await engine.export(
                 asset: asset,
                 trimRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 1.0, preferredTimescale: 600)),
                 format: .mp4H264,
@@ -492,6 +493,8 @@ final class VideoEngineExportLifecycleTests: XCTestCase {
         }
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: outputURL.path))
+        XCTAssertFalse(engine.isExporting, "isExporting should be reset after failure")
+        XCTAssertEqual(engine.progress, 0, "progress should be reset after failure")
     }
 
     @MainActor
@@ -537,7 +540,8 @@ final class VideoEngineExportLifecycleTests: XCTestCase {
             XCTFail("Unexpected error type: \(error)")
         }
 
-        XCTAssertFalse(engine.isExporting)
+        XCTAssertFalse(engine.isExporting, "isExporting should be reset after cancel")
+        XCTAssertEqual(engine.progress, 0, "progress should be reset after cancel")
         XCTAssertFalse(FileManager.default.fileExists(atPath: outputURL.path))
     }
 }

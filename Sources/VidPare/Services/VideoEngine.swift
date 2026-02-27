@@ -85,8 +85,7 @@ final class VideoEngine {
                 startDate: startDate
             )
         } catch {
-            stopProgressPolling()
-            self.isExporting = false
+            resetExportState()
             try? FileManager.default.removeItem(at: tempOutputURL)
             throw error
         }
@@ -94,8 +93,7 @@ final class VideoEngine {
 
     func cancelExport() {
         exportSession?.cancelExport()
-        stopProgressPolling()
-        isExporting = false
+        resetExportState()
     }
 
     /// Estimate output file size in bytes
@@ -197,6 +195,13 @@ final class VideoEngine {
 
     // MARK: - Private
 
+    private func resetExportState() {
+        stopProgressPolling()
+        exportSession = nil
+        isExporting = false
+        progress = 0
+    }
+
     private func resolveRequestedSelection(
         asset: AVURLAsset,
         format: ExportFormat,
@@ -256,7 +261,7 @@ final class VideoEngine {
         startDate: Date
     ) throws -> ExportResult {
         guard session.status == .completed else {
-            self.isExporting = false
+            resetExportState()
             try? FileManager.default.removeItem(at: tempOutputURL)
             if session.status == .cancelled {
                 throw ExportError.cancelled

@@ -62,7 +62,7 @@ No ffmpeg. No Electron. No WASM.
 
 ```text
 Sources/VidPare/
-├── App/              # @main entry point, WindowGroup
+├── App/              # @main entry point, WindowGroup, AppDelegate (window focus handling)
 ├── Models/           # VideoDocument (AVAsset wrapper), TrimState (@Observable)
 ├── Views/            # ContentView, VideoPlayerView, TimelineView, PlayerControlsView, ExportSheet
 ├── Services/         # VideoEngine (trim/export), ThumbnailGenerator
@@ -100,6 +100,7 @@ Acceptance tests are **local-only** — they require Accessibility permissions f
 - `AVAssetImageGenerator` should use `appliesPreferredTrackTransform = true` for rotated videos
 - `AVAssetExportSession.progress` can be unreliable — poll at ~0.5s intervals
 - Security-scoped resource access is reference-counted; block file loading during active exports
+- **Window focus**: `AppDelegate` handles `applicationDidBecomeActive` and `applicationShouldHandleReopen` to ensure the window stays visible when switching via Mission Control or Dock click
 
 ## Important Notes
 

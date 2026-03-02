@@ -297,35 +297,45 @@ struct ExportSheet: View {
     savePanel.nameFieldStringValue = exportFileName(for: resolved.format)
     savePanel.canCreateDirectories = true
 
-    guard savePanel.runModal() == .OK, let url = savePanel.url else { return }
+    // Use begin() instead of runModal() to avoid a modal-session conflict
+    // with the SwiftUI .sheet that hosts ExportSheet. runModal() blocks the
+    // thread and steals keyboard focus, leaving the filename field visible
+    // but non-editable.
+    savePanel.begin { response in
+      guard response == .OK, let url = savePanel.url else { return }
 
-    Task {
-      do {
-        let result = try await videoEngine.export(
-          asset: document.asset,
-          trimRange: trimState.trimRange,
-          format: resolved.format,
-          quality: resolved.quality,
-          outputURL: url,
-          sourceIsHEVC: document.isHEVC,
-          sourceURL: document.url,
-          sourceFileType: document.sourceFileType
-        )
-        exportResult = result
-        NSSound(named: "Glass")?.play()
-      } catch is CancellationError {
-        // User cancelled, do nothing
-      } catch ExportError.cancelled {
-        // Export cancelled
-      } catch {
-        errorMessage = error.localizedDescription
-        showingError = true
+      Task { @MainActor in
+        do {
+          let result = try await videoEngine.export(
+            asset: document.asset,
+            trimRange: trimState.trimRange,
+            format: resolved.format,
+            quality: resolved.quality,
+            outputURL: url,
+            sourceIsHEVC: document.isHEVC,
+            sourceURL: document.url,
+            sourceFileType: document.sourceFileType
+          )
+          exportResult = result
+          NSSound(named: "Glass")?.play()
+        } catch is CancellationError {
+          // User cancelled, do nothing
+        } catch ExportError.cancelled {
+          // Export cancelled
+        } catch {
+          errorMessage = error.localizedDescription
+          showingError = true
+        }
       }
     }
   }
 
   private func exportFileName(for format: ExportFormat) -> String {
-    let baseName = document.url.deletingPathExtension().lastPathComponent
+    Self.exportFileName(sourceURL: document.url, format: format)
+  }
+
+  static func exportFileName(sourceURL: URL, format: ExportFormat) -> String {
+    let baseName = sourceURL.deletingPathExtension().lastPathComponent
     return "\(baseName)_trimmed.\(format.fileExtension)"
   }
 }

@@ -58,7 +58,7 @@ test-verbose: ## Run unit tests with verbose output
 coverage: ## Run tests with code coverage and generate LCOV report
 	swift test --enable-code-coverage -v
 	@PROF_DATA="$(BUILD_DIR)/debug/codecov/default.profdata"; \
-	TEST_BIN="$(BUILD_DIR)/debug/VidParePackageTests.xctest"; \
+	TEST_BIN="$(BUILD_DIR)/debug/$(APP_NAME)PackageTests.xctest"; \
 	if [ ! -f "$$PROF_DATA" ]; then \
 		echo "Error: profdata not found at $$PROF_DATA" >&2; \
 		exit 1; \

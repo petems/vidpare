@@ -17,12 +17,12 @@ export const siteConfig: SiteConfig = {
   appName: 'VidPare',
   heroTitle: 'Trim videos fast on macOS. No uploads. No nonsense.',
   heroSubtitle:
-    'Free and open source video trimming for Mac, built with SwiftUI and AVFoundation for native speed and reliability.',
+    'Free, open-source video trimming for Mac. Fast exports, complete privacy, zero bloat.',
   trustItems: [
     'Free',
     'Open Source (MIT)',
     'Native macOS',
-    'No ffmpeg dependency'
+    'No external dependencies'
   ],
   cta: {
     downloadUrl: 'https://github.com/petems/vidpare/releases/latest',

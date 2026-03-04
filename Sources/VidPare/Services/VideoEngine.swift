@@ -49,6 +49,13 @@ final class VideoEngine: @unchecked Sendable {
         gifSettings: GIFExportSettings = GIFExportSettings()
     ) async throws -> ExportResult {
         let generation = beginExportGeneration()
+        let scopedAccess = sourceURL?.startAccessingSecurityScopedResource() ?? false
+        defer {
+            if scopedAccess, let sourceURL {
+                sourceURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
         let (requestedFormat, requestedQuality) = try await resolveRequestedSelection(
             asset: asset,
             format: format,
@@ -56,13 +63,6 @@ final class VideoEngine: @unchecked Sendable {
             sourceFileType: sourceFileType,
             sourceIsHEVC: sourceIsHEVC
         )
-
-        let scopedAccess = sourceURL?.startAccessingSecurityScopedResource() ?? false
-        defer {
-            if scopedAccess, let sourceURL {
-                sourceURL.stopAccessingSecurityScopedResource()
-            }
-        }
 
         if requestedFormat == .gif {
             return try await exportGIF(

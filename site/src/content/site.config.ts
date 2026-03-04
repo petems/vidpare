@@ -15,7 +15,7 @@ export interface SiteConfig {
 
 export const siteConfig: SiteConfig = {
   appName: 'VidPare',
-  heroTitle: 'Trim videos fast on macOS. No uploads. No nonsense.',
+  heroTitle: 'Trim videos fast on macOS\nNo uploads\nNo nonsense.',
   heroSubtitle:
     'Free and open source video trimming for Mac, built with SwiftUI and AVFoundation for native speed and reliability.',
   trustItems: [

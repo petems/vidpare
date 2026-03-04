@@ -2,8 +2,9 @@ import AppKit
 import AVFoundation
 import SnapshotTesting
 import SwiftUI
-@testable import VidPare
 import XCTest
+
+@testable import VidPare
 
 @MainActor
 final class SnapshotTests: XCTestCase {
@@ -102,10 +103,22 @@ final class SnapshotTests: XCTestCase {
 
   // MARK: - ExportSheet
 
+  func testExportCompletionView() throws {
+    let result = VideoEngine.ExportResult(
+      outputURL: URL(fileURLWithPath: "/tmp/sample_trimmed.mp4"),
+      duration: 15.3,
+      fileSize: 5_000_000
+    )
+    let view = ExportCompletionView(result: result, onDismiss: {})
+    try snapshotView(view, size: CGSize(width: 420, height: 540))
+  }
+
   func testExportSheet_initialState() throws {
-    guard let fixtureURL = Bundle.module.url(
-      forResource: "sample", withExtension: "mp4"
-    ) else {
+    guard
+      let fixtureURL = Bundle.module.url(
+        forResource: "sample", withExtension: "mp4"
+      )
+    else {
       throw XCTSkip("Missing fixture: sample.mp4")
     }
 

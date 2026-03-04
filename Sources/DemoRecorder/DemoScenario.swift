@@ -173,6 +173,12 @@ struct DemoScenario {
     }
     sleep(for: 1.0)
 
+    try clickExportButton(in: window)
+    try acceptSavePanel(app: app, window: window)
+    try waitForExportCompletion(app: app)
+  }
+
+  private func clickExportButton(in window: AXUIElement) throws {
     guard
       let exportButton = findElement(
         withIdentifier: "vidpare.export.exportButton", in: window)
@@ -180,7 +186,6 @@ struct DemoScenario {
       throw ScenarioError.elementNotFound("vidpare.export.exportButton")
     }
 
-    // Wait for capability loading (Export button becomes enabled once capabilities resolve)
     let buttonEnabled = waitFor(timeout: 10.0) {
       axEnabled(of: exportButton)
     }
@@ -189,16 +194,15 @@ struct DemoScenario {
     }
     sleep(for: 0.5)
     moveAndClick(exportButton)
+  }
 
-    // Wait for save panel to appear (may be a sheet on the main window or a standalone window)
+  private func acceptSavePanel(app: AXUIElement, window: AXUIElement) throws {
     let savePanelAppeared = waitFor(timeout: 5.0) {
-      // Check the main window first (sheet case)
       if findElement(
         withRole: kAXTextFieldRole as String,
         valueContaining: "_trimmed",
         in: window
       ) != nil { return true }
-      // Fall back to checking all windows (standalone case)
       return axWindows(of: app).contains { win in
         findElement(
           withRole: kAXTextFieldRole as String,
@@ -212,40 +216,40 @@ struct DemoScenario {
     }
     sleep(for: 0.5)
 
-    // Click the Save button in the save panel
     let saveButtonFound = clickSavePanelButton(app: app, titled: "Save")
     if !saveButtonFound {
-      // Fall back to Return key if we can't find the Save button
       sendKeyPress(virtualKey: 0x24)
     }
     sleep(for: 1.0)
 
-    // Handle possible overwrite confirmation dialog ("Replace" button)
+    handleOverwriteConfirmation(app: app)
+  }
+
+  private func handleOverwriteConfirmation(app: AXUIElement) {
     let replaceAppeared = waitFor(timeout: 2.0, interval: 0.25) {
       axWindows(of: app).contains { findButton(titled: "Replace", in: $0) != nil }
     }
-    if replaceAppeared {
-      for win in axWindows(of: app) {
-        if let replaceBtn = findButton(titled: "Replace", in: win) {
-          sleep(for: 0.3)
-          moveAndClick(replaceBtn)
-          break
-        }
+    guard replaceAppeared else { return }
+    for win in axWindows(of: app) {
+      if let replaceBtn = findButton(titled: "Replace", in: win) {
+        sleep(for: 0.3)
+        moveAndClick(replaceBtn)
+        break
       }
     }
+  }
 
-    // Wait for export to complete (completion view may appear in main window or sheet window)
+  private func waitForExportCompletion(app: AXUIElement) throws {
     let exportCompleted = waitFor(timeout: 30.0, interval: 0.5) {
       axWindows(of: app).contains {
         findElement(withIdentifier: "vidpare.export.completionView", in: $0) != nil
       }
     }
-
     guard exportCompleted else {
       throw ScenarioError.exportDidNotComplete
     }
     sleep(for: 2.0)
-    // Click Done to dismiss the completion view (search all windows for sheet case)
+
     for win in axWindows(of: app) {
       if let doneBtn = findElement(withIdentifier: "vidpare.export.doneButton", in: win) {
         moveAndClick(doneBtn)
@@ -283,8 +287,8 @@ struct DemoScenario {
     let stepDelay = duration / Double(steps)
 
     for i in 1...steps {
-      let t = Double(i) / Double(steps)
-      let ease = t * t * (3.0 - 2.0 * t)
+      let progress = Double(i) / Double(steps)
+      let ease = progress * progress * (3.0 - 2.0 * progress)
       let x = start.x + CGFloat(ease) * (end.x - start.x)
       let y = start.y + CGFloat(ease) * (end.y - start.y)
 
@@ -304,8 +308,8 @@ struct DemoScenario {
     let stepDelay = duration / Double(steps)
 
     for i in 1...steps {
-      let t = Double(i) / Double(steps)
-      let ease = t * t * (3.0 - 2.0 * t)
+      let progress = Double(i) / Double(steps)
+      let ease = progress * progress * (3.0 - 2.0 * progress)
       let x = start.x + CGFloat(ease) * (end.x - start.x)
       let y = start.y + CGFloat(ease) * (end.y - start.y)
 

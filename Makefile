@@ -4,6 +4,8 @@ APP_NAME     := VidPare
 BUILD_DIR    := .build
 DEBUG_BIN    := $(BUILD_DIR)/debug/$(APP_NAME)
 RELEASE_BIN  := $(BUILD_DIR)/release/$(APP_NAME)
+SNAPSHOT_DIR := Tests/VidPareTests/__Snapshots__/SnapshotTests
+SCREENSHOT_DIR := docs/screenshots
 
 # CI-friendly overrides (e.g. make build VERBOSE=1, make lint-strict REPORTER=github-actions-logging)
 VERBOSE  ?=
@@ -135,6 +137,22 @@ demo-record: build ## Record a fresh demo MP4 (requires Screen Recording + Acces
 demo: demo-record ## Record demo and verify output exists
 	@test -f "$(DEMO_OUTPUT)" && echo "Demo recorded: $(DEMO_OUTPUT)" || \
 		{ echo "Error: Demo recording failed." >&2; exit 1; }
+
+# ── Screenshots ──────────────────────────────────────────────────────
+
+.PHONY: screenshots
+screenshots: ## Capture app snapshots and refresh docs screenshots
+	./scripts/screenshots/capture-launch-screenshot.sh "$(SCREENSHOT_DIR)/main-content-view.png"
+	SNAPSHOT_TESTING_RECORD=1 swift test --filter SnapshotTests $(V_FLAG)
+	@mkdir -p "$(SCREENSHOT_DIR)"
+	@cp "$(SNAPSHOT_DIR)/testPlayerControls_paused.1.png" "$(SCREENSHOT_DIR)/player-controls-paused.png"
+	@cp "$(SNAPSHOT_DIR)/testPlayerControls_playing.1.png" "$(SCREENSHOT_DIR)/player-controls-playing.png"
+	@cp "$(SNAPSHOT_DIR)/testTimelineView_noThumbnails.1.png" "$(SCREENSHOT_DIR)/timeline-no-thumbnails.png"
+	@cp "$(SNAPSHOT_DIR)/testTimelineView_trimAtStart.1.png" "$(SCREENSHOT_DIR)/timeline-trim-at-start.png"
+	@cp "$(SNAPSHOT_DIR)/testTimelineView_fullRange.1.png" "$(SCREENSHOT_DIR)/timeline-full-range.png"
+	@cp "$(SNAPSHOT_DIR)/testExportSheet_initialState.1.png" "$(SCREENSHOT_DIR)/export-sheet-initial-state.png"
+	@cp "$(SNAPSHOT_DIR)/testExportCompletionView.1.png" "$(SCREENSHOT_DIR)/export-completion-view.png"
+	@echo "Screenshots updated in $(SCREENSHOT_DIR)"
 
 # ── Site ─────────────────────────────────────────────────────────────
 

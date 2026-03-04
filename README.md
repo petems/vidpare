@@ -6,6 +6,10 @@ A lightweight native macOS video trimmer built with Swift, SwiftUI, and AVFounda
 
 https://github.com/user-attachments/assets/51823d5b-558f-40fd-8626-8f4cb92a4e3a
 
+## Main UI
+
+![VidPare main content view](docs/screenshots/main-content-view.png)
+
 ## Motivation
 
 Web-based video trimming tools impose file size limits, require uploads, and rely on slow WASM-based processing. VidPare uses macOS-native AVFoundation for hardware-accelerated video operations, including passthrough remux (near-instant, lossless trimming without re-encoding).

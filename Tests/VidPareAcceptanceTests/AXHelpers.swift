@@ -8,8 +8,9 @@ func axApp(for pid: pid_t) -> AXUIElement {
 func axMainWindow(of app: AXUIElement) -> AXUIElement? {
   var value: CFTypeRef?
   let result = AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute as CFString, &value)
-  guard result == .success else { return nil }
-  return (value as? AXUIElement)
+  guard result == .success, let val = value else { return nil }
+  // CFTypeRef → AXUIElement requires unsafeBitCast (conditional cast always succeeds for CF types)
+  return unsafeBitCast(val, to: AXUIElement.self)
 }
 
 func axWindows(of app: AXUIElement) -> [AXUIElement] {

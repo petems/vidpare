@@ -134,7 +134,17 @@ private func parseRecordArgs(_ args: [String]) throws -> RecordConfig {
     case "--poster":
       posterPath = value
     case "--width":
-      outputWidth = Int(value) ?? 1920
+      guard let parsedWidth = Int(value) else {
+        print("Error: --width value '\(value)' is not a valid integer.")
+        DemoRecorderCLI.printUsage()
+        exit(1)
+      }
+      guard parsedWidth > 0 else {
+        print("Error: --width must be greater than 0.")
+        DemoRecorderCLI.printUsage()
+        exit(1)
+      }
+      outputWidth = parsedWidth
     case "--bitrate":
       guard let parsedBitrate = Int(value) else {
         print("Error: --bitrate value '\(value)' is not a valid integer.")
@@ -143,7 +153,17 @@ private func parseRecordArgs(_ args: [String]) throws -> RecordConfig {
       }
       targetBitrate = parsedBitrate
     case "--fps":
-      fps = Int(value) ?? 30
+      guard let parsedFPS = Int(value) else {
+        print("Error: --fps value '\(value)' is not a valid integer.")
+        DemoRecorderCLI.printUsage()
+        exit(1)
+      }
+      guard parsedFPS > 0 else {
+        print("Error: --fps must be greater than 0.")
+        DemoRecorderCLI.printUsage()
+        exit(1)
+      }
+      fps = parsedFPS
     default:
       print("Unknown option: \(option)")
       DemoRecorderCLI.printUsage()

@@ -5,6 +5,8 @@ import CoreVideo
 import Foundation
 
 struct PostProcessor {
+  private static let exportCoordinator = ExportCoordinator()
+
   let inputURL: URL
   let outputURL: URL
   let posterURL: URL?
@@ -28,28 +30,58 @@ struct PostProcessor {
 
   /// Runs the full post-processing pipeline and optionally extracts a poster frame.
   func process() async throws {
-    let asset = AVURLAsset(url: inputURL)
-    let duration = try await asset.load(.duration)
+    try await Self.exportCoordinator.begin()
+    do {
+      try await withSecurityScopedResourceAccess(urls: exportRelatedURLs()) {
+        let asset = AVURLAsset(url: inputURL)
+        let duration = try await asset.load(.duration)
 
-    guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
-      throw PostProcessorError.noVideoTrack
+        guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
+          throw PostProcessorError.noVideoTrack
+        }
+
+        let naturalSize = try await videoTrack.load(.naturalSize)
+        let preferredTransform = try await videoTrack.load(.preferredTransform)
+        let (composition, videoComposition) = try buildComposition(
+          videoTrack: videoTrack,
+          duration: duration,
+          naturalSize: naturalSize,
+          preferredTransform: preferredTransform
+        )
+
+        try await exportComposition(composition, videoComposition: videoComposition)
+
+        print("  Post-processed video: \(outputURL.path)")
+        if let posterURL {
+          try await extractPoster(from: outputURL, to: posterURL)
+        }
+      }
+    } catch {
+      await Self.exportCoordinator.end()
+      throw error
     }
+    await Self.exportCoordinator.end()
+  }
 
-    let naturalSize = try await videoTrack.load(.naturalSize)
-    let preferredTransform = try await videoTrack.load(.preferredTransform)
-    let (composition, videoComposition) = try buildComposition(
-      videoTrack: videoTrack,
-      duration: duration,
-      naturalSize: naturalSize,
-      preferredTransform: preferredTransform
-    )
-
-    try await exportComposition(composition, videoComposition: videoComposition)
-
-    print("  Post-processed video: \(outputURL.path)")
+  /// Returns file URLs touched by post-processing so scoped access can be managed centrally.
+  private func exportRelatedURLs() -> [URL] {
+    var urls = [inputURL, outputURL, outputURL.deletingLastPathComponent()]
     if let posterURL {
-      try await extractPoster(from: outputURL, to: posterURL)
+      urls.append(posterURL)
+      urls.append(posterURL.deletingLastPathComponent())
     }
+    return urls
+  }
+
+  /// Wraps post-processing with reference-counted security-scoped resource acquisition.
+  private func withSecurityScopedResourceAccess<T>(
+    urls: [URL],
+    operation: () async throws -> T
+  ) async throws -> T {
+    let access = SecurityScopedAccess()
+    access.acquire(urls: urls)
+    defer { access.releaseAll() }
+    return try await operation()
   }
 
   /// Builds a trimmed composition and matching video composition for scaling/rendering.
@@ -301,6 +333,7 @@ enum PostProcessorError: Error, CustomStringConvertible {
   case compositionFailed
   case exportSessionFailed
   case exportFailed
+  case exportInProgress
   case posterExtractionFailed
 
   var description: String {
@@ -309,7 +342,73 @@ enum PostProcessorError: Error, CustomStringConvertible {
     case .compositionFailed: return "Failed to create composition track."
     case .exportSessionFailed: return "Failed to create export session."
     case .exportFailed: return "Export session failed."
+    case .exportInProgress: return "Another export is already in progress."
     case .posterExtractionFailed: return "Failed to extract poster frame."
     }
+  }
+}
+
+/// Coordinates post-processing so callers cannot load/export files concurrently.
+private actor ExportCoordinator {
+  private var activeExports = 0
+
+  func begin() throws {
+    guard activeExports == 0 else {
+      throw PostProcessorError.exportInProgress
+    }
+    activeExports += 1
+  }
+
+  func end() {
+    if activeExports > 0 {
+      activeExports -= 1
+    }
+  }
+}
+
+/// Reference-counted security-scoped URL access used by post-processing file I/O.
+private final class SecurityScopedAccess {
+  private struct Entry {
+    var refCount: Int
+    let url: URL
+    let started: Bool
+  }
+
+  private var entries: [String: Entry] = [:]
+
+  func acquire(urls: [URL]) {
+    for url in urls {
+      let standardized = url.standardizedFileURL
+      let key = standardized.path
+      if var entry = entries[key] {
+        entry.refCount += 1
+        entries[key] = entry
+        continue
+      }
+      let started = standardized.startAccessingSecurityScopedResource()
+      entries[key] = Entry(refCount: 1, url: standardized, started: started)
+    }
+  }
+
+  func releaseAll() {
+    let keys = Array(entries.keys)
+    for key in keys {
+      while let entry = entries[key], entry.refCount > 0 {
+        release(key: key)
+      }
+    }
+  }
+
+  private func release(key: String) {
+    guard var entry = entries[key] else { return }
+    entry.refCount -= 1
+    if entry.refCount == 0 {
+      if entry.started {
+        entry.url.stopAccessingSecurityScopedResource()
+      }
+      entries.removeValue(forKey: key)
+      return
+    }
+    entries[key] = entry
   }
 }

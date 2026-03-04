@@ -13,6 +13,7 @@ final class TrimState {
 
     var exportFormat: ExportFormat = .mp4H264
     var qualityPreset: QualityPreset = .passthrough
+    var gifSettings = GIFExportSettings()
 
     func reset(for videoDuration: CMTime) {
         let seconds = CMTimeGetSeconds(videoDuration)
@@ -37,6 +38,7 @@ enum ExportFormat: String, CaseIterable, Identifiable {
     case mp4H264 = "MP4 (H.264)"
     case movH264 = "MOV (H.264)"
     case mp4HEVC = "MP4 (HEVC/H.265)"
+    case gif = "GIF"
 
     var id: String { rawValue }
 
@@ -44,6 +46,7 @@ enum ExportFormat: String, CaseIterable, Identifiable {
         switch self {
         case .mp4H264, .mp4HEVC: return .mp4
         case .movH264: return .mov
+        case .gif: return .gif
         }
     }
 
@@ -51,6 +54,7 @@ enum ExportFormat: String, CaseIterable, Identifiable {
         switch self {
         case .mp4H264, .mp4HEVC: return "mp4"
         case .movH264: return "mov"
+        case .gif: return "gif"
         }
     }
 
@@ -58,6 +62,7 @@ enum ExportFormat: String, CaseIterable, Identifiable {
         switch self {
         case .mp4H264, .mp4HEVC: return .mpeg4Movie
         case .movH264: return .quickTimeMovie
+        case .gif: return .gif
         }
     }
 
@@ -66,10 +71,12 @@ enum ExportFormat: String, CaseIterable, Identifiable {
     }
 
     var containerLabel: String {
-        switch fileType {
-        case .mov:
+        switch self {
+        case .movH264:
             return "MOV"
-        default:
+        case .gif:
+            return "GIF"
+        case .mp4H264, .mp4HEVC:
             return "MP4"
         }
     }
@@ -88,6 +95,44 @@ enum ExportFormat: String, CaseIterable, Identifiable {
             return sourceIsHEVC ? .mp4HEVC : .mp4H264
         }
     }
+}
+
+struct GIFExportSettings: Equatable {
+    static let maxDurationSeconds: TimeInterval = 15
+    var frameRate: GIFFrameRate = .fps12
+    var scale: GIFScale = .full
+}
+
+enum GIFFrameRate: Int, CaseIterable, Identifiable {
+    case fps8 = 8
+    case fps12 = 12
+    case fps15 = 15
+
+    var id: Int { rawValue }
+
+    var label: String {
+        "\(rawValue) FPS"
+    }
+}
+
+enum GIFScale: Double, CaseIterable, Identifiable {
+    case full = 1.0
+    case medium = 0.75
+    case small = 0.5
+
+    var id: Double { rawValue }
+
+    var label: String {
+        switch self {
+        case .full: return "100%"
+        case .medium: return "75%"
+        case .small: return "50%"
+        }
+    }
+}
+
+extension AVFileType {
+    static let gif = AVFileType(rawValue: "com.compuserve.gif")
 }
 
 enum QualityPreset: String, CaseIterable, Identifiable {

@@ -19,8 +19,9 @@ Web-based video trimming tools impose file size limits, require uploads, and rel
 - Open MP4, MOV, M4V files via drag-and-drop or file picker
 - Video preview with scrubbing
 - Timeline with thumbnail strip and draggable trim handles
-- Export formats: MP4 (H.264), MOV (H.264), MP4 (HEVC)
+- Export formats: MP4 (H.264), MOV (H.264), MP4 (HEVC), GIF
 - Quality presets: Passthrough (default), High, Medium, Low
+- GIF controls: separate frame rate and output size options (15s max duration)
 - Export capability preflight based on current Mac + source media
 - Estimated output size in export dialog
 

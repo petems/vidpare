@@ -1,4 +1,5 @@
 import ApplicationServices
+import AVFoundation
 import AXAutomation
 import XCTest
 
@@ -105,6 +106,106 @@ final class AcceptanceTests: XCTestCase {
     try openExportSheet(inWindow: window)
     try assertSavePanelFilenameEditable(app: app, window: window)
   }
+
+  // MARK: - GIF Export Flows
+
+  func testGIFExport_startCompletesAndWritesFile() throws {
+    let sourceFile = try copyFixtureToTemp()
+    defer { try? FileManager.default.removeItem(at: sourceFile) }
+
+    let outputURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent("vidpare-gif-\(UUID().uuidString).gif")
+    defer { try? FileManager.default.removeItem(at: outputURL) }
+
+    let app = axApp(for: pid)
+    guard let window = axWindows(of: app).first else {
+      XCTFail("No app window found")
+      return
+    }
+
+    try openVideoFile(at: sourceFile, inWindow: window)
+    try openExportSheet(inWindow: window, autoPressExport: false)
+    try selectExportFormatGIF(inWindow: window)
+    try triggerExportAndConfirmSave(app: app, window: window, outputURL: outputURL)
+
+    let completed = waitFor(timeout: 20.0) {
+      findElement(withIdentifier: "vidpare.export.completionView", in: window) != nil
+    }
+    XCTAssertTrue(completed, "Export completion view should appear for GIF export")
+    XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path), "GIF output should exist")
+  }
+
+  func testGIFExport_cancelStopsExportAndRemovesOutput() throws {
+    let sourceFile = try copyFixtureToTemp()
+    defer { try? FileManager.default.removeItem(at: sourceFile) }
+
+    let outputURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent("vidpare-gif-cancel-\(UUID().uuidString).gif")
+    defer { try? FileManager.default.removeItem(at: outputURL) }
+
+    let app = axApp(for: pid)
+    guard let window = axWindows(of: app).first else {
+      XCTFail("No app window found")
+      return
+    }
+
+    try openVideoFile(at: sourceFile, inWindow: window)
+    try openExportSheet(inWindow: window, autoPressExport: false)
+    try selectExportFormatGIF(inWindow: window)
+    try triggerExportAndConfirmSave(app: app, window: window, outputURL: outputURL)
+
+    let exportCancelAppeared = waitFor(timeout: 10.0) {
+      findButton(titled: "Cancel", in: window) != nil
+    }
+    XCTAssertTrue(exportCancelAppeared, "Export cancel button should appear while GIF export is running")
+
+    guard let exportCancelButton = findButton(titled: "Cancel", in: window) else {
+      XCTFail("Expected export cancel button")
+      return
+    }
+    XCTAssertTrue(pressButton(exportCancelButton), "Should cancel GIF export")
+
+    let exportReset = waitFor(timeout: 10.0) {
+      findElement(withIdentifier: "vidpare.export.exportButton", in: window) != nil
+    }
+    XCTAssertTrue(exportReset, "Export sheet should return to idle state after cancellation")
+    XCTAssertFalse(
+      FileManager.default.fileExists(atPath: outputURL.path),
+      "Cancelled GIF export should not leave an output file"
+    )
+  }
+
+  func testGIFExport_durationLimitBlocksSavePanel() async throws {
+    let sourceFile = try copyFixtureToTemp()
+    defer { try? FileManager.default.removeItem(at: sourceFile) }
+
+    let asset = AVURLAsset(url: sourceFile)
+    let sourceDurationSeconds = CMTimeGetSeconds(try await asset.load(.duration))
+    guard sourceDurationSeconds > 15.0 else {
+      throw XCTSkip("Fixture is too short to exceed the GIF 15s limit")
+    }
+
+    let app = axApp(for: pid)
+    guard let window = axWindows(of: app).first else {
+      XCTFail("No app window found")
+      return
+    }
+
+    try openVideoFile(at: sourceFile, inWindow: window)
+    try openExportSheet(inWindow: window, autoPressExport: false)
+    try selectExportFormatGIF(inWindow: window)
+
+    guard let exportButton = findElement(withIdentifier: "vidpare.export.exportButton", in: window) else {
+      XCTFail("Export button not found in export sheet")
+      return
+    }
+    XCTAssertTrue(pressButton(exportButton), "Should attempt GIF export")
+
+    let savePanelAppeared = waitFor(timeout: 3.0) {
+      findSavePanel(in: app) != nil
+    }
+    XCTAssertFalse(savePanelAppeared, "Save panel should not appear when GIF exceeds 15s limit")
+  }
 }
 
 // MARK: - Test Helpers
@@ -185,7 +286,7 @@ extension AcceptanceTests {
     }
   }
 
-  private func openExportSheet(inWindow window: AXUIElement) throws {
+  private func openExportSheet(inWindow window: AXUIElement, autoPressExport: Bool = true) throws {
     let exportToolbarFound = waitFor(timeout: 5.0) {
       findElement(withIdentifier: "vidpare.toolbar.export", in: window) != nil
     }
@@ -211,6 +312,8 @@ extension AcceptanceTests {
       XCTFail("Export button not found in export sheet")
       return
     }
+
+    guard autoPressExport else { return }
 
     // Wait for capability loading to finish
     Thread.sleep(forTimeInterval: 1.0)
@@ -273,6 +376,65 @@ extension AcceptanceTests {
         return
       }
     }
+  }
+
+  private func findSavePanel(in app: AXUIElement) -> AXUIElement? {
+    for win in axWindows(of: app) {
+      if axRole(of: win) == kAXSheetRole as String {
+        return win
+      }
+      if let sheet = findElement(withRole: kAXSheetRole as String, in: win) {
+        return sheet
+      }
+    }
+    return nil
+  }
+
+  private func selectExportFormatGIF(inWindow window: AXUIElement) throws {
+    let selected = waitFor(timeout: 5.0) {
+      let radioButtons = findElements(withRole: kAXRadioButtonRole as String, in: window)
+      guard let gifButton = radioButtons.first(where: { (axTitle(of: $0) ?? "").contains("GIF") }) else {
+        return false
+      }
+      return pressButton(gifButton)
+    }
+    if !selected {
+      throw XCTSkip("Could not select GIF format in export sheet")
+    }
+  }
+
+  private func triggerExportAndConfirmSave(
+    app: AXUIElement,
+    window: AXUIElement,
+    outputURL: URL
+  ) throws {
+    guard let exportButton = findElement(withIdentifier: "vidpare.export.exportButton", in: window) else {
+      XCTFail("Export button not found in export sheet")
+      return
+    }
+    XCTAssertTrue(pressButton(exportButton), "Should press Export button")
+
+    let savePanelAppeared = waitFor(timeout: 5.0) {
+      findSavePanel(in: app) != nil
+    }
+    XCTAssertTrue(savePanelAppeared, "Save panel should appear")
+    guard let savePanel = findSavePanel(in: app) else {
+      XCTFail("Could not find save panel")
+      return
+    }
+
+    let pathFields = findElements(withRole: kAXComboBoxRole as String, in: savePanel)
+      + findElements(withRole: kAXTextFieldRole as String, in: savePanel)
+    guard let pathField = pathFields.first(where: { axIsValueSettable(of: $0) }) else {
+      if let cancelBtn = findButton(titled: "Cancel", in: savePanel) {
+        pressButton(cancelBtn)
+      }
+      throw XCTSkip("Could not find editable path field in save panel")
+    }
+
+    XCTAssertTrue(axSetValue(outputURL.path, of: pathField), "Should set save path")
+    Thread.sleep(forTimeInterval: 0.3)
+    sendKeyPress(virtualKey: 0x24)
   }
 
   private func sendKeyPress(virtualKey: CGKeyCode) {

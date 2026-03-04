@@ -3,16 +3,25 @@ import Observation
 
 @MainActor
 @Observable
-final class VideoEngine {
+final class VideoEngine: @unchecked Sendable {
     private(set) var isExporting = false
     private(set) var progress: Double = 0
     private var exportSession: AVAssetExportSession?
+    private var gifExportTask: Task<Void, Error>?
+    private var exportGeneration: UInt64 = 0
     private var progressTimer: Timer?
 
     struct ExportResult {
         let outputURL: URL
         let duration: TimeInterval
         let fileSize: Int64
+    }
+
+    private struct FinalizeContext {
+        let outputURL: URL
+        let destinationExistedBeforeExport: Bool
+        let startDate: Date
+        let generation: UInt64
     }
 
     nonisolated static func effectiveQuality(
@@ -43,8 +52,17 @@ final class VideoEngine {
         outputURL: URL,
         sourceIsHEVC: Bool = false,
         sourceURL: URL? = nil,
-        sourceFileType: AVFileType? = nil
+        sourceFileType: AVFileType? = nil,
+        gifSettings: GIFExportSettings = GIFExportSettings()
     ) async throws -> ExportResult {
+        let generation = beginExportGeneration()
+        let scopedAccess = sourceURL?.startAccessingSecurityScopedResource() ?? false
+        defer {
+            if scopedAccess, let sourceURL {
+                sourceURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
         let (requestedFormat, requestedQuality) = try await resolveRequestedSelection(
             asset: asset,
             format: format,
@@ -53,11 +71,14 @@ final class VideoEngine {
             sourceIsHEVC: sourceIsHEVC
         )
 
-        let scopedAccess = sourceURL?.startAccessingSecurityScopedResource() ?? false
-        defer {
-            if scopedAccess, let sourceURL {
-                sourceURL.stopAccessingSecurityScopedResource()
-            }
+        if requestedFormat == .gif {
+            return try await exportGIF(
+                asset: asset,
+                trimRange: trimRange,
+                outputURL: outputURL,
+                gifSettings: gifSettings,
+                generation: generation
+            )
         }
 
         let tempOutputURL = temporaryOutputURL(for: outputURL)
@@ -68,7 +89,7 @@ final class VideoEngine {
             trimRange: trimRange,
             tempOutputURL: tempOutputURL
         )
-        startProgressPolling()
+        startProgressPolling(generation: generation)
 
         let startDate = Date()
         let destinationExistedBeforeExport = FileManager.default.fileExists(atPath: outputURL.path)
@@ -77,22 +98,32 @@ final class VideoEngine {
             await session.export()
             stopProgressPolling()
 
+            let finalizeContext = FinalizeContext(
+                outputURL: outputURL,
+                destinationExistedBeforeExport: destinationExistedBeforeExport,
+                startDate: startDate,
+                generation: generation
+            )
+
             return try finalizeExportResult(
                 session: session,
                 tempOutputURL: tempOutputURL,
-                outputURL: outputURL,
-                destinationExistedBeforeExport: destinationExistedBeforeExport,
-                startDate: startDate
+                context: finalizeContext
             )
         } catch {
-            resetExportState()
-            try? FileManager.default.removeItem(at: tempOutputURL)
+            resetExportStateIfCurrent(generation: generation)
+            if isCurrentGeneration(generation) {
+                try? FileManager.default.removeItem(at: tempOutputURL)
+            }
             throw error
         }
     }
 
     func cancelExport() {
+        _ = beginExportGeneration()
         exportSession?.cancelExport()
+        gifExportTask?.cancel()
+        gifExportTask = nil
         resetExportState()
     }
 
@@ -146,7 +177,13 @@ final class VideoEngine {
 
             guard let session = AVAssetExportSession(asset: asset, presetName: preset) else {
                 for format in ExportFormat.allCases {
-                    row[format] = .unsupported("The \(quality.rawValue) preset is not compatible with this source.")
+                    if format == .gif {
+                        row[format] = quality.isPassthrough
+                            ? .unsupported("GIF export requires re-encoding; passthrough is unavailable.")
+                            : .supported
+                    } else {
+                        row[format] = .unsupported("The \(quality.rawValue) preset is not compatible with this source.")
+                    }
                 }
                 matrix[quality] = row
                 continue
@@ -155,6 +192,15 @@ final class VideoEngine {
             let supportedFileTypes = Set(session.supportedFileTypes)
 
             for format in ExportFormat.allCases {
+                if format == .gif {
+                    if quality.isPassthrough {
+                        row[format] = .unsupported("GIF export requires re-encoding; passthrough is unavailable.")
+                    } else {
+                        row[format] = .supported
+                    }
+                    continue
+                }
+
                 if quality.isPassthrough {
                     if format != sourceContainer {
                         row[format] = .unsupported("Passthrough keeps the source container (\(sourceContainer.containerLabel)).")
@@ -191,6 +237,20 @@ final class VideoEngine {
 
     // MARK: - Private
 
+    private func beginExportGeneration() -> UInt64 {
+        exportGeneration &+= 1
+        return exportGeneration
+    }
+
+    private func isCurrentGeneration(_ generation: UInt64) -> Bool {
+        exportGeneration == generation
+    }
+
+    private func resetExportStateIfCurrent(generation: UInt64) {
+        guard isCurrentGeneration(generation) else { return }
+        resetExportState()
+    }
+
     private func resetExportState() {
         stopProgressPolling()
         exportSession = nil
@@ -216,15 +276,19 @@ final class VideoEngine {
             quality: quality,
             sourceIsHEVC: sourceIsHEVC
         )
-        let requestedFormat = requestedQuality.isPassthrough ? capabilities.sourceContainerFormat : format
 
-        guard capabilities.isSupported(format: requestedFormat, quality: requestedQuality) else {
-            let reason = capabilities.support(for: requestedFormat, quality: requestedQuality).reason
+        let resolved = capabilities.resolvedSelection(
+            requestedFormat: format,
+            requestedQuality: requestedQuality
+        )
+
+        guard capabilities.isSupported(format: resolved.format, quality: resolved.quality) else {
+            let reason = capabilities.support(for: resolved.format, quality: resolved.quality).reason
                 ?? "This export option is not available on this Mac."
             throw ExportError.incompatibleSelection(reason)
         }
 
-        return (requestedFormat, requestedQuality)
+        return (resolved.format, resolved.quality)
     }
 
     private func createExportSession(
@@ -234,6 +298,10 @@ final class VideoEngine {
         trimRange: CMTimeRange,
         tempOutputURL: URL
     ) throws -> AVAssetExportSession {
+        guard requestedFormat != .gif else {
+            throw ExportError.sessionCreationFailed
+        }
+
         guard let session = AVAssetExportSession(asset: asset, presetName: requestedQuality.exportPreset) else {
             throw ExportError.sessionCreationFailed
         }
@@ -252,12 +320,14 @@ final class VideoEngine {
     private func finalizeExportResult(
         session: AVAssetExportSession,
         tempOutputURL: URL,
-        outputURL: URL,
-        destinationExistedBeforeExport: Bool,
-        startDate: Date
+        context: FinalizeContext
     ) throws -> ExportResult {
+        guard isCurrentGeneration(context.generation) else {
+            throw ExportError.cancelled
+        }
+
         guard session.status == .completed else {
-            resetExportState()
+            resetExportStateIfCurrent(generation: context.generation)
             try? FileManager.default.removeItem(at: tempOutputURL)
             if session.status == .cancelled {
                 throw ExportError.cancelled
@@ -265,13 +335,27 @@ final class VideoEngine {
             throw ExportError.exportFailed(session.error?.localizedDescription ?? "Unknown error")
         }
 
+        return try finalizeExportedTemporaryResult(
+            tempOutputURL: tempOutputURL,
+            context: context
+        )
+    }
+
+    private func finalizeExportedTemporaryResult(
+        tempOutputURL: URL,
+        context: FinalizeContext
+    ) throws -> ExportResult {
+        guard isCurrentGeneration(context.generation) else {
+            throw ExportError.cancelled
+        }
+
         let finalizedURL = try finalizeExportedFile(
             from: tempOutputURL,
-            to: outputURL,
-            destinationExistedBeforeExport: destinationExistedBeforeExport
+            to: context.outputURL,
+            destinationExistedBeforeExport: context.destinationExistedBeforeExport
         )
 
-        let elapsed = Date().timeIntervalSince(startDate)
+        let elapsed = Date().timeIntervalSince(context.startDate)
         let attrs = try? FileManager.default.attributesOfItem(atPath: finalizedURL.path)
         let fileSize = (attrs?[.size] as? Int64) ?? 0
 
@@ -281,9 +365,10 @@ final class VideoEngine {
         return ExportResult(outputURL: finalizedURL, duration: elapsed, fileSize: fileSize)
     }
 
-    private func startProgressPolling() {
+    private func startProgressPolling(generation: UInt64) {
         progressTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
+                guard self?.isCurrentGeneration(generation) == true else { return }
                 guard let session = self?.exportSession else { return }
                 let newProgress = Double(session.progress)
                 if newProgress >= (self?.progress ?? 0) {
@@ -323,22 +408,78 @@ final class VideoEngine {
     }
 }
 
-enum ExportError: LocalizedError {
-    case sessionCreationFailed
-    case incompatibleSelection(String)
-    case exportFailed(String)
-    case cancelled
+private extension VideoEngine {
+    func exportGIF(
+        asset: AVURLAsset,
+        trimRange: CMTimeRange,
+        outputURL: URL,
+        gifSettings: GIFExportSettings,
+        generation: UInt64
+    ) async throws -> ExportResult {
+        let trimSeconds = CMTimeGetSeconds(trimRange.duration)
+        guard trimSeconds > 0, trimSeconds.isFinite else {
+            throw ExportError.incompatibleSelection("Select a non-zero trim range to export GIF.")
+        }
 
-    var errorDescription: String? {
-        switch self {
-        case .sessionCreationFailed:
-            return "Failed to create export session. The file format may not support the selected export settings."
-        case .incompatibleSelection(let reason):
-            return "The selected export options are incompatible: \(reason)"
-        case .exportFailed(let reason):
-            return "Export failed: \(reason)"
-        case .cancelled:
-            return "Export was cancelled."
+        if trimSeconds > GIFExportSettings.maxDurationSeconds {
+            throw ExportError.gifDurationLimitExceeded(maxSeconds: GIFExportSettings.maxDurationSeconds)
+        }
+
+        let tempOutputURL = temporaryOutputURL(for: outputURL)
+        let destinationExistedBeforeExport = FileManager.default.fileExists(atPath: outputURL.path)
+        let startDate = Date()
+
+        isExporting = true
+        progress = 0
+
+        let task = Task.detached(priority: .userInitiated) { [asset, trimRange, tempOutputURL, gifSettings, generation] in
+            try await Self.renderGIF(
+                asset: asset,
+                trimRange: trimRange,
+                outputURL: tempOutputURL,
+                settings: gifSettings
+            ) { [engine = self] updatedProgress in
+                await MainActor.run {
+                    guard engine.isCurrentGeneration(generation), engine.isExporting else { return }
+                    if updatedProgress >= engine.progress {
+                        engine.progress = updatedProgress
+                    }
+                }
+            }
+        }
+
+        gifExportTask = task
+
+        do {
+            try await task.value
+            gifExportTask = nil
+            guard isCurrentGeneration(generation) else {
+                throw ExportError.cancelled
+            }
+            let finalizeContext = FinalizeContext(
+                outputURL: outputURL,
+                destinationExistedBeforeExport: destinationExistedBeforeExport,
+                startDate: startDate,
+                generation: generation
+            )
+            return try finalizeExportedTemporaryResult(
+                tempOutputURL: tempOutputURL,
+                context: finalizeContext
+            )
+        } catch is CancellationError {
+            gifExportTask = nil
+            resetExportStateIfCurrent(generation: generation)
+            if isCurrentGeneration(generation) {
+                try? FileManager.default.removeItem(at: tempOutputURL)
+            }
+            throw ExportError.cancelled
+        } catch {
+            gifExportTask = nil
+            resetExportStateIfCurrent(generation: generation)
+            if isCurrentGeneration(generation) {
+                try? FileManager.default.removeItem(at: tempOutputURL)
+            }
+            throw error
         }
     }
 }

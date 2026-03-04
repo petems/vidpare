@@ -31,6 +31,17 @@ struct ExportSheet: View {
       )
   }
 
+  private var isGIFSelected: Bool {
+    trimState.exportFormat == .gif
+  }
+
+  private var gifDurationWarning: String? {
+    guard isGIFSelected else { return nil }
+    let trimDurationSeconds = CMTimeGetSeconds(trimState.duration)
+    guard trimDurationSeconds > GIFExportSettings.maxDurationSeconds else { return nil }
+    return "GIF export is limited to \(Int(GIFExportSettings.maxDurationSeconds)) seconds."
+  }
+
   private var estimatedSize: Int64 {
     VideoEngine.estimateOutputSize(
       fileSize: document.fileSize,
@@ -42,6 +53,7 @@ struct ExportSheet: View {
 
   private var canExport: Bool {
     guard let capabilities else { return false }
+    if gifDurationWarning != nil { return false }
     let resolved = capabilities.resolvedSelection(
       requestedFormat: trimState.exportFormat,
       requestedQuality: trimState.qualityPreset
@@ -50,6 +62,10 @@ struct ExportSheet: View {
   }
 
   private var selectionWarning: String? {
+    if let gifDurationWarning {
+      return gifDurationWarning
+    }
+
     if let capabilityMessage {
       return capabilityMessage
     }
@@ -113,7 +129,7 @@ struct ExportSheet: View {
             }
           }
           .pickerStyle(.radioGroup)
-          .disabled(trimState.qualityPreset.isPassthrough || isLoadingCapabilities)
+          .disabled(isLoadingCapabilities)
           .accessibilityIdentifier(AccessibilityID.formatPicker)
           .onChange(of: trimState.exportFormat) { _, _ in
             enforceValidSelection()
@@ -129,30 +145,76 @@ struct ExportSheet: View {
         }
       }
 
-      GroupBox("Quality") {
-        VStack(alignment: .leading, spacing: 8) {
-          Picker("Quality", selection: $trimState.qualityPreset) {
-            ForEach(QualityPreset.allCases) { preset in
-              Text(preset.rawValue)
-                .tag(preset)
-                .disabled(isQualityDisabled(preset))
+      if isGIFSelected {
+        GroupBox("GIF Settings") {
+          VStack(alignment: .leading, spacing: 10) {
+            HStack {
+              Text("Frame rate")
+              Spacer()
+              Picker(
+                "Frame rate",
+                selection: Binding(
+                  get: { trimState.gifSettings.frameRate },
+                  set: { trimState.gifSettings.frameRate = $0 }
+                )
+              ) {
+                ForEach(GIFFrameRate.allCases) { frameRate in
+                  Text(frameRate.label)
+                    .tag(frameRate)
+                }
+              }
+              .labelsHidden()
             }
-          }
-          .pickerStyle(.radioGroup)
-          .disabled(isLoadingCapabilities)
-          .accessibilityIdentifier(AccessibilityID.qualityPicker)
-          .onChange(of: trimState.qualityPreset) { _, _ in
-            enforceValidSelection()
-          }
 
-          if trimState.qualityPreset.isPassthrough {
-            Text("Passthrough: near-instant, lossless. Trim points snap to nearest keyframe.")
+            HStack {
+              Text("Size")
+              Spacer()
+              Picker(
+                "Size",
+                selection: Binding(
+                  get: { trimState.gifSettings.scale },
+                  set: { trimState.gifSettings.scale = $0 }
+                )
+              ) {
+                ForEach(GIFScale.allCases) { scale in
+                  Text(scale.label)
+                    .tag(scale)
+                }
+              }
+              .labelsHidden()
+            }
+
+            Text("GIF exports are capped at \(Int(GIFExportSettings.maxDurationSeconds)) seconds.")
               .font(.caption)
               .foregroundStyle(.secondary)
-          } else {
-            Text("Re-encode: precise trim points, but slower processing.")
-              .font(.caption)
-              .foregroundStyle(.secondary)
+          }
+        }
+      } else {
+        GroupBox("Quality") {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Quality", selection: $trimState.qualityPreset) {
+              ForEach(QualityPreset.allCases) { preset in
+                Text(preset.rawValue)
+                  .tag(preset)
+                  .disabled(isQualityDisabled(preset))
+              }
+            }
+            .pickerStyle(.radioGroup)
+            .disabled(isLoadingCapabilities)
+            .accessibilityIdentifier(AccessibilityID.qualityPicker)
+            .onChange(of: trimState.qualityPreset) { _, _ in
+              enforceValidSelection()
+            }
+
+            if trimState.qualityPreset.isPassthrough {
+              Text("Passthrough: near-instant, lossless. Trim points snap to nearest keyframe.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+              Text("Re-encode: precise trim points, but slower processing.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
           }
         }
       }
@@ -175,7 +237,11 @@ struct ExportSheet: View {
         HStack {
           Text("Estimated size:")
           Spacer()
-          Text(ByteCountFormatter.string(fromByteCount: estimatedSize, countStyle: .file))
+          Text(
+            isGIFSelected
+              ? "Not available for GIF"
+              : ByteCountFormatter.string(fromByteCount: estimatedSize, countStyle: .file)
+          )
             .fontWeight(.medium)
         }
       }
@@ -215,7 +281,9 @@ struct ExportSheet: View {
     }
     .padding(24)
   }
+}
 
+extension ExportSheet {
   private func loadCapabilities() async {
     isLoadingCapabilities = true
     do {
@@ -265,6 +333,9 @@ struct ExportSheet: View {
   private func isFormatDisabled(_ format: ExportFormat) -> Bool {
     guard let capabilities else { return false }
     if trimState.qualityPreset.isPassthrough {
+      if format == .gif {
+        return false
+      }
       return format != capabilities.sourceContainerFormat
     }
     return !capabilities.isSupported(format: format, quality: trimState.qualityPreset)
@@ -273,6 +344,12 @@ struct ExportSheet: View {
   private func startExport() {
     guard let capabilities else {
       errorMessage = "Export compatibility has not finished loading yet."
+      showingError = true
+      return
+    }
+
+    if let gifDurationWarning {
+      errorMessage = gifDurationWarning
       showingError = true
       return
     }
@@ -328,7 +405,8 @@ struct ExportSheet: View {
           outputURL: url,
           sourceIsHEVC: document.isHEVC,
           sourceURL: document.url,
-          sourceFileType: document.sourceFileType
+          sourceFileType: document.sourceFileType,
+          gifSettings: trimState.gifSettings
         )
         exportResult = result
         NSSound(named: "Glass")?.play()

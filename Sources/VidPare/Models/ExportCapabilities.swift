@@ -78,6 +78,19 @@ struct ExportCapabilities {
             }
         }
 
+        if requestedFormat == .gif && requestedQuality.isPassthrough {
+            let gifFallbackQualities: [QualityPreset] = [.high, .medium, .low]
+            if let fallbackQuality = gifFallbackQualities.first(where: {
+                isSupported(format: requestedFormat, quality: $0)
+            }) {
+                return ResolvedExportSelection(
+                    format: requestedFormat,
+                    quality: fallbackQuality,
+                    adjustmentReason: "GIF export requires re-encoding; switched to a non-passthrough quality."
+                )
+            }
+        }
+
         if let fallbackFormat = supportedFormats(for: requestedQuality).first {
             return ResolvedExportSelection(
                 format: fallbackFormat,

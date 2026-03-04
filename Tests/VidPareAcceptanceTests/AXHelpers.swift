@@ -9,7 +9,7 @@ func axMainWindow(of app: AXUIElement) -> AXUIElement? {
   var value: CFTypeRef?
   let result = AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute as CFString, &value)
   guard result == .success else { return nil }
-  return (value as! AXUIElement)  // swiftlint:disable:this force_cast
+  return (value as? AXUIElement)
 }
 
 func axWindows(of app: AXUIElement) -> [AXUIElement] {

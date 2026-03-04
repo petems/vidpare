@@ -17,6 +17,13 @@ final class VideoEngine: @unchecked Sendable {
         let fileSize: Int64
     }
 
+    private struct FinalizeContext {
+        let outputURL: URL
+        let destinationExistedBeforeExport: Bool
+        let startDate: Date
+        let generation: UInt64
+    }
+
     nonisolated static func effectiveQuality(
         format: ExportFormat,
         quality: QualityPreset,
@@ -91,13 +98,17 @@ final class VideoEngine: @unchecked Sendable {
             await session.export()
             stopProgressPolling()
 
-            return try finalizeExportResult(
-                session: session,
-                tempOutputURL: tempOutputURL,
+            let finalizeContext = FinalizeContext(
                 outputURL: outputURL,
                 destinationExistedBeforeExport: destinationExistedBeforeExport,
                 startDate: startDate,
                 generation: generation
+            )
+
+            return try finalizeExportResult(
+                session: session,
+                tempOutputURL: tempOutputURL,
+                context: finalizeContext
             )
         } catch {
             resetExportStateIfCurrent(generation: generation)
@@ -309,17 +320,14 @@ final class VideoEngine: @unchecked Sendable {
     private func finalizeExportResult(
         session: AVAssetExportSession,
         tempOutputURL: URL,
-        outputURL: URL,
-        destinationExistedBeforeExport: Bool,
-        startDate: Date,
-        generation: UInt64
+        context: FinalizeContext
     ) throws -> ExportResult {
-        guard isCurrentGeneration(generation) else {
+        guard isCurrentGeneration(context.generation) else {
             throw ExportError.cancelled
         }
 
         guard session.status == .completed else {
-            resetExportStateIfCurrent(generation: generation)
+            resetExportStateIfCurrent(generation: context.generation)
             try? FileManager.default.removeItem(at: tempOutputURL)
             if session.status == .cancelled {
                 throw ExportError.cancelled
@@ -329,31 +337,25 @@ final class VideoEngine: @unchecked Sendable {
 
         return try finalizeExportedTemporaryResult(
             tempOutputURL: tempOutputURL,
-            outputURL: outputURL,
-            destinationExistedBeforeExport: destinationExistedBeforeExport,
-            startDate: startDate,
-            generation: generation
+            context: context
         )
     }
 
     private func finalizeExportedTemporaryResult(
         tempOutputURL: URL,
-        outputURL: URL,
-        destinationExistedBeforeExport: Bool,
-        startDate: Date,
-        generation: UInt64
+        context: FinalizeContext
     ) throws -> ExportResult {
-        guard isCurrentGeneration(generation) else {
+        guard isCurrentGeneration(context.generation) else {
             throw ExportError.cancelled
         }
 
         let finalizedURL = try finalizeExportedFile(
             from: tempOutputURL,
-            to: outputURL,
-            destinationExistedBeforeExport: destinationExistedBeforeExport
+            to: context.outputURL,
+            destinationExistedBeforeExport: context.destinationExistedBeforeExport
         )
 
-        let elapsed = Date().timeIntervalSince(startDate)
+        let elapsed = Date().timeIntervalSince(context.startDate)
         let attrs = try? FileManager.default.attributesOfItem(atPath: finalizedURL.path)
         let fileSize = (attrs?[.size] as? Int64) ?? 0
 
@@ -454,12 +456,15 @@ private extension VideoEngine {
             guard isCurrentGeneration(generation) else {
                 throw ExportError.cancelled
             }
-            return try finalizeExportedTemporaryResult(
-                tempOutputURL: tempOutputURL,
+            let finalizeContext = FinalizeContext(
                 outputURL: outputURL,
                 destinationExistedBeforeExport: destinationExistedBeforeExport,
                 startDate: startDate,
                 generation: generation
+            )
+            return try finalizeExportedTemporaryResult(
+                tempOutputURL: tempOutputURL,
+                context: finalizeContext
             )
         } catch is CancellationError {
             gifExportTask = nil

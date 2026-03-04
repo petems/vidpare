@@ -138,6 +138,7 @@ struct TimelineView: View {
                     }
             )
             .offset(x: isStart ? x - 12 : x)
+            .accessibilityIdentifier(isStart ? AccessibilityID.trimHandleStart : AccessibilityID.trimHandleEnd)
             .cursor(.resizeLeftRight)
     }
 

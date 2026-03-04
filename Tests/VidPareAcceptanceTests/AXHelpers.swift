@@ -113,6 +113,14 @@ func findElement(withRole role: String, in element: AXUIElement) -> AXUIElement?
   return nil
 }
 
+/// Return the sheet attached to a window, if any.
+func axSheet(of window: AXUIElement) -> AXUIElement? {
+  for child in axChildren(of: window) where axRole(of: child) == "AXSheet" {
+    return child
+  }
+  return nil
+}
+
 /// Recursively search for an element matching a role whose value contains a substring.
 func findElement(
   withRole role: String,
@@ -136,6 +144,63 @@ func findElement(
 func findButton(titled title: String, in element: AXUIElement) -> AXUIElement? {
   let buttons = findElements(withRole: kAXButtonRole as String, in: element)
   return buttons.first { axTitle(of: $0) == title }
+}
+
+/// Return the screen-space frame (position + size) of an AX element.
+func axFrame(of element: AXUIElement) -> CGRect? {
+  var posValue: CFTypeRef?
+  var sizeValue: CFTypeRef?
+  guard
+    AXUIElementCopyAttributeValue(
+      element, kAXPositionAttribute as CFString, &posValue
+    ) == .success,
+    AXUIElementCopyAttributeValue(
+      element, kAXSizeAttribute as CFString, &sizeValue
+    ) == .success
+  else { return nil }
+  var position = CGPoint.zero
+  var size = CGSize.zero
+  // swiftlint:disable:next force_cast
+  guard AXValueGetValue(posValue as! AXValue, .cgPoint, &position) else { return nil }
+  // swiftlint:disable:next force_cast
+  guard AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) else { return nil }
+  return CGRect(origin: position, size: size)
+}
+
+/// Simulate a mouse drag from one screen point to another.
+func simulateDrag(from start: CGPoint, to end: CGPoint, steps: Int = 10) {
+  let source = CGEventSource(stateID: .combinedSessionState)
+
+  CGEvent(
+    mouseEventSource: source,
+    mouseType: .leftMouseDown,
+    mouseCursorPosition: start,
+    mouseButton: .left
+  )?.post(tap: .cghidEventTap)
+  Thread.sleep(forTimeInterval: 0.05)
+
+  for step in 1...steps {
+    let fraction = CGFloat(step) / CGFloat(steps)
+    let point = CGPoint(
+      x: start.x + (end.x - start.x) * fraction,
+      y: start.y + (end.y - start.y) * fraction
+    )
+    CGEvent(
+      mouseEventSource: source,
+      mouseType: .leftMouseDragged,
+      mouseCursorPosition: point,
+      mouseButton: .left
+    )?.post(tap: .cghidEventTap)
+    Thread.sleep(forTimeInterval: 0.02)
+  }
+
+  CGEvent(
+    mouseEventSource: source,
+    mouseType: .leftMouseUp,
+    mouseCursorPosition: end,
+    mouseButton: .left
+  )?.post(tap: .cghidEventTap)
+  Thread.sleep(forTimeInterval: 0.05)
 }
 
 /// Wait for a condition to become true, polling at intervals.

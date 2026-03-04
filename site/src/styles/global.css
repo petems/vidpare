@@ -42,7 +42,7 @@ main {
 h1,
 h2,
 h3,
-.brand {
+.hero-brand {
   font-family: 'Space Grotesk Variable', 'Avenir Next', sans-serif;
   letter-spacing: -0.03em;
 }
@@ -53,7 +53,7 @@ a {
 
 .site-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 0 1.5rem;
@@ -70,10 +70,16 @@ a {
   text-decoration: none;
 }
 
-.brand {
-  font-size: 1.4rem;
-  text-decoration: none;
+.hero-brand {
+  margin: 0;
+  font-size: clamp(4.2rem, 16vw, 12rem);
+  line-height: 0.8;
   font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+.hero-brand a {
+  text-decoration: none;
 }
 
 .surface {
@@ -87,13 +93,21 @@ a {
   padding: clamp(2rem, 3vw, 3rem);
   display: grid;
   gap: 1rem;
+  text-align: center;
+  justify-items: center;
+  margin-inline: auto;
 }
 
-.hero h1 {
+.hero-title-stack {
+  display: grid;
+  gap: 0.08em;
+  margin: 0;
+}
+
+.hero-title-stack h2 {
   font-size: clamp(2rem, 4.8vw, 4.5rem);
   line-height: 0.96;
   margin: 0;
-  max-width: 16ch;
 }
 
 .eyebrow {
@@ -106,14 +120,15 @@ a {
 }
 
 .lede {
-  margin: 0;
+  margin: 0 auto;
   color: var(--muted);
   font-size: clamp(1rem, 2vw, 1.26rem);
-  max-width: 64ch;
+  max-width: 56ch;
+  text-wrap: pretty;
 }
 
 .microcopy {
-  margin: 0;
+  margin: 0 auto;
   color: #3b4f72;
   font-size: 0.95rem;
 }
@@ -158,10 +173,16 @@ summary:focus-visible {
 
 .hero-demo {
   margin-top: 1rem;
+  margin-inline: auto;
+  width: min(920px, 100%);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #d6e4ff;
   box-shadow: 0 8px 32px -12px rgba(0, 69, 199, 0.25);
+}
+
+.hero .cta-row {
+  justify-content: center;
 }
 
 .hero-demo video {
@@ -175,6 +196,12 @@ summary:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
+  justify-content: center;
+}
+
+.centered-section {
+  margin-inline: auto;
+  text-align: center;
 }
 
 .pill {
@@ -192,6 +219,7 @@ summary:focus-visible {
   display: grid;
   gap: 0.9rem;
   container-type: inline-size;
+  width: min(960px, 100%);
 }
 
 .card {
@@ -199,6 +227,7 @@ summary:focus-visible {
   border: 1px solid #d9e6ff;
   border-radius: 20px;
   padding: 1.1rem;
+  text-align: center;
 }
 
 .card h2 {
@@ -235,6 +264,7 @@ summary:focus-visible {
 .cta-banner,
 .faq {
   margin-top: 1.8rem;
+  width: min(900px, 100%);
 }
 
 .tech-block {
@@ -261,6 +291,7 @@ summary:focus-visible {
   flex-wrap: wrap;
   gap: 0.6rem;
   margin-top: 0.8rem;
+  justify-content: center;
 }
 
 .code-chip span {
@@ -277,11 +308,13 @@ summary:focus-visible {
   list-style: none;
   display: grid;
   gap: 0.8rem;
+  justify-items: center;
 }
 
 .workflow li {
-  border-left: 3px solid #b8d1ff;
-  padding: 0.2rem 0 0.2rem 0.8rem;
+  border-top: 3px solid #b8d1ff;
+  max-width: 40ch;
+  padding: 0.6rem 0 0;
 }
 
 .workflow strong {
@@ -295,11 +328,17 @@ summary:focus-visible {
   padding: 1.4rem;
 }
 
+.cta-banner .cta-row {
+  justify-content: center;
+}
+
 .faq details {
   border: 1px solid #d9e7ff;
   border-radius: 16px;
   padding: 0.75rem 0.88rem;
   background: white;
+  max-width: 72ch;
+  margin-inline: auto;
 }
 
 .faq details + details {
@@ -362,10 +401,12 @@ html:not(.is-ready) .reveal {
 @media (max-width: 720px) {
   .site-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
   }
 
   .site-header nav {
     flex-wrap: wrap;
+    justify-content: center;
   }
 }

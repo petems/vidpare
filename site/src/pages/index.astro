@@ -2,12 +2,13 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import { siteConfig } from '../content/site.config';
 import { faqs, featureItems } from '../content/features';
+
+const heroTitleLines = siteConfig.heroTitle.split('\n').filter((line) => line.trim().length > 0);
 ---
 
 <MainLayout>
   <main id="top">
     <header class="site-header">
-      <a class="brand" href="#top">{siteConfig.appName}</a>
       <nav>
         <a href="#features">Features</a>
         <a href="#tech">Tech</a>
@@ -15,9 +16,16 @@ import { faqs, featureItems } from '../content/features';
       </nav>
     </header>
 
-    <section class="hero surface reveal">
+    <section id="hero" class="hero surface reveal">
+      <h1 class="hero-brand"><a href="#top">{siteConfig.appName}</a></h1>
       <p class="eyebrow">Native macOS video trimmer</p>
-      <h1>{siteConfig.heroTitle}</h1>
+      <div class="hero-title-stack">
+        {
+          heroTitleLines.map((line) => (
+            <h2>{line}</h2>
+          ))
+        }
+      </div>
       <p class="lede">{siteConfig.heroSubtitle}</p>
       <div class="cta-row">
         <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">{siteConfig.cta.primaryLabel}</a>
@@ -33,7 +41,7 @@ import { faqs, featureItems } from '../content/features';
       </div>
     </section>
 
-    <section class="trust-strip" aria-label="Key guarantees">
+    <section class="trust-strip centered-section" aria-label="Key guarantees">
       {
         siteConfig.trustItems.map((item) => (
           <span class="pill">{item}</span>
@@ -41,7 +49,7 @@ import { faqs, featureItems } from '../content/features';
       }
     </section>
 
-    <section id="features" class="feature-grid reveal">
+    <section id="features" class="feature-grid reveal centered-section">
       {
         featureItems.map((feature) => (
           <article class="card">
@@ -53,7 +61,7 @@ import { faqs, featureItems } from '../content/features';
       }
     </section>
 
-    <section id="tech" class="tech-block surface reveal">
+    <section id="tech" class="tech-block surface reveal centered-section">
       <h2>Not a shell over ffmpeg</h2>
       <p>
         VidPare is built directly on Apple frameworks: Swift, SwiftUI, AVFoundation, and VideoToolbox.
@@ -67,7 +75,7 @@ import { faqs, featureItems } from '../content/features';
       </div>
     </section>
 
-    <section class="workflow reveal">
+    <section class="workflow reveal centered-section">
       <h2>How it works</h2>
       <ol>
         <li>
@@ -85,7 +93,7 @@ import { faqs, featureItems } from '../content/features';
       </ol>
     </section>
 
-    <section class="cta-banner reveal" aria-label="download">
+    <section class="cta-banner reveal centered-section" aria-label="download">
       <h2>Free, open source, and built for macOS creators</h2>
       <p>Use VidPare when you want trimming done in seconds, not a heavyweight editing suite.</p>
       <div class="cta-row">
@@ -94,7 +102,7 @@ import { faqs, featureItems } from '../content/features';
       </div>
     </section>
 
-    <section id="faq" class="faq reveal">
+    <section id="faq" class="faq reveal centered-section">
       <h2>FAQ</h2>
       {
         faqs.map((item) => (

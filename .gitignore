@@ -51,3 +51,13 @@ site/node_modules/
 site/.astro/
 site/dist/
 site/.lighthouseci/
+
+# Playwright artifacts
+.playwright-cli/
+output/playwright/
+playwright-report/
+test-results/
+blob-report/
+site/playwright-report/
+site/test-results/
+site/blob-report/

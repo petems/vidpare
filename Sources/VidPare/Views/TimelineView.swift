@@ -153,7 +153,7 @@ struct TimelineView: View {
 
     static func xPosition(for time: CMTime, totalSeconds: Double, in width: CGFloat) -> CGFloat {
         let seconds = CMTimeGetSeconds(time)
-        guard seconds.isFinite else { return 0 }
+        guard seconds.isFinite, totalSeconds > 0 else { return 0 }
         let clamped = min(max(seconds, 0), totalSeconds)
         return CGFloat(clamped / totalSeconds) * width
     }

@@ -41,6 +41,19 @@ final class TimelineViewTests: XCTestCase {
     XCTAssertEqual(pos, 0)
   }
 
+  func testXPosition_zeroTotalDuration() {
+    let zero = TimelineView.xPosition(for: .zero, totalSeconds: 0, in: width)
+    XCTAssertEqual(zero, 0)
+
+    let nonZero = TimelineView.xPosition(
+      for: CMTime(seconds: 5, preferredTimescale: 600), totalSeconds: 0, in: width
+    )
+    XCTAssertEqual(nonZero, 0)
+
+    let invalid = TimelineView.xPosition(for: .invalid, totalSeconds: 0, in: width)
+    XCTAssertEqual(invalid, 0)
+  }
+
   // MARK: - trimHandleOffset
 
   func testStartHandleOffset_atLeftEdge_staysInBounds() {

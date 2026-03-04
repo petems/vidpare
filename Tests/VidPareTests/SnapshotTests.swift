@@ -135,4 +135,55 @@ final class SnapshotTests: XCTestCase {
     )
     try snapshotView(view, size: CGSize(width: 420, height: 540))
   }
+
+  func testExportSheet_whenGIFSelected() throws {
+    guard
+      let fixtureURL = Bundle.module.url(
+        forResource: "sample", withExtension: "mp4"
+      )
+    else {
+      throw XCTSkip("Missing fixture: sample.mp4")
+    }
+
+    let document = VideoDocument(url: fixtureURL)
+    let trimState = TrimState()
+    trimState.startTime = .zero
+    trimState.endTime = CMTime(seconds: 16, preferredTimescale: 600)
+    trimState.exportFormat = .gif
+    trimState.gifSettings.frameRate = .fps15
+    trimState.gifSettings.scale = .small
+
+    let view = ExportSheet(
+      document: document,
+      trimState: trimState,
+      videoEngine: VideoEngine(),
+      onDismiss: {}
+    )
+    try snapshotView(view, size: CGSize(width: 420, height: 540))
+  }
+
+  func testExportSheet_whenNonGIF_showsQuality() throws {
+    guard
+      let fixtureURL = Bundle.module.url(
+        forResource: "sample", withExtension: "mp4"
+      )
+    else {
+      throw XCTSkip("Missing fixture: sample.mp4")
+    }
+
+    let document = VideoDocument(url: fixtureURL)
+    let trimState = TrimState()
+    trimState.startTime = .zero
+    trimState.endTime = CMTime(seconds: 8, preferredTimescale: 600)
+    trimState.exportFormat = .mp4H264
+    trimState.qualityPreset = .high
+
+    let view = ExportSheet(
+      document: document,
+      trimState: trimState,
+      videoEngine: VideoEngine(),
+      onDismiss: {}
+    )
+    try snapshotView(view, size: CGSize(width: 420, height: 540))
+  }
 }

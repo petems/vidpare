@@ -7,6 +7,12 @@ import Foundation
 struct PostProcessor {
   private static let exportCoordinator = ExportCoordinator()
 
+  private struct CompositionBuildResult {
+    let composition: AVMutableComposition
+    let videoComposition: AVMutableVideoComposition
+    let compositionTrack: AVAssetTrack
+  }
+
   let inputURL: URL
   let outputURL: URL
   let posterURL: URL?
@@ -31,7 +37,7 @@ struct PostProcessor {
   /// Runs the full post-processing pipeline and optionally extracts a poster frame.
   func process() async throws {
     let securityScopedAccess = SecurityScopedAccess()
-    let (composition, videoComposition, compositionTrack) = try await withSecurityScopedResourceAccess(
+    let buildResult = try await withSecurityScopedResourceAccess(
       securityScopedAccess,
       urls: [inputURL, inputURL.deletingLastPathComponent()]
     ) {
@@ -56,9 +62,9 @@ struct PostProcessor {
 
     try await Self.exportCoordinator.withExport {
       try await exportComposition(
-        composition,
-        videoComposition: videoComposition,
-        compositionTrack: compositionTrack,
+        buildResult.composition,
+        videoComposition: buildResult.videoComposition,
+        compositionTrack: buildResult.compositionTrack,
         securityScopedAccess: securityScopedAccess
       )
     }
@@ -90,7 +96,7 @@ struct PostProcessor {
     duration: CMTime,
     naturalSize: CGSize,
     preferredTransform: CGAffineTransform
-  ) throws -> (AVMutableComposition, AVMutableVideoComposition, AVAssetTrack) {
+  ) throws -> CompositionBuildResult {
     let aspectRatio = naturalSize.height / naturalSize.width
     let targetHeight = Int(CGFloat(targetWidth) * aspectRatio)
     let outputWidth = targetWidth % 2 == 0 ? targetWidth : targetWidth + 1
@@ -136,7 +142,11 @@ struct PostProcessor {
     instruction.layerInstructions = [layerInstruction]
     videoComposition.instructions = [instruction]
 
-    return (composition, videoComposition, compositionTrack)
+    return CompositionBuildResult(
+      composition: composition,
+      videoComposition: videoComposition,
+      compositionTrack: compositionTrack
+    )
   }
 
   /// Exports the composed timeline to `outputURL`, cleaning up partial output on failure.

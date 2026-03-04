@@ -87,6 +87,7 @@ struct ExportSheet: View {
                     }
                     .pickerStyle(.radioGroup)
                     .disabled(trimState.qualityPreset.isPassthrough || isLoadingCapabilities)
+                    .accessibilityIdentifier(AccessibilityID.formatPicker)
                     .onChange(of: trimState.exportFormat) { _, _ in
                         enforceValidSelection()
                     }
@@ -110,6 +111,7 @@ struct ExportSheet: View {
                     }
                     .pickerStyle(.radioGroup)
                     .disabled(isLoadingCapabilities)
+                    .accessibilityIdentifier(AccessibilityID.qualityPicker)
                     .onChange(of: trimState.qualityPreset) { _, _ in
                         enforceValidSelection()
                     }
@@ -187,6 +189,7 @@ struct ExportSheet: View {
                         onDismiss()
                     }
                     .keyboardShortcut(.cancelAction)
+                    .accessibilityIdentifier(AccessibilityID.cancelButton)
 
                     Button("Export...") {
                         startExport()
@@ -194,6 +197,7 @@ struct ExportSheet: View {
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .disabled(!canExport || isLoadingCapabilities)
+                    .accessibilityIdentifier(AccessibilityID.exportButton)
                 }
             }
         }

@@ -21,6 +21,7 @@ struct PlayerControlsView: View {
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.space, modifiers: [])
+            .accessibilityIdentifier(AccessibilityID.playPauseButton)
 
             // Time display
             Text(TimeFormatter.preciseString(from: currentTime))
@@ -44,6 +45,7 @@ struct PlayerControlsView: View {
                         .font(.caption)
                 }
                 .help("Set in point (I)")
+                .accessibilityIdentifier(AccessibilityID.inPointButton)
 
                 Text(TimeFormatter.preciseString(from: trimState.startTime))
                     .font(.caption)
@@ -64,6 +66,7 @@ struct PlayerControlsView: View {
                         .font(.caption)
                 }
                 .help("Set out point (O)")
+                .accessibilityIdentifier(AccessibilityID.outPointButton)
             }
 
             Divider().frame(height: 20)

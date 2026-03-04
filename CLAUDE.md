@@ -71,6 +71,25 @@ Tests/VidPareTests/   # Unit tests
 site/                 # Cloudflare Pages product website
 ```
 
+## Visual Testing Workflow
+
+When making UI changes, use snapshot and acceptance tests to verify fixes:
+
+1. **Before changing code**: Run `make test-snapshots` to confirm baselines pass
+2. **After changing code**: Run `make test-snapshots` to detect visual regressions
+3. **If snapshots fail intentionally** (your change altered appearance on purpose):
+   - Run `make test-record-snapshots` to generate new baselines
+   - Run `make test-snapshots` again to confirm the new baselines pass
+   - Commit the updated PNG baselines alongside your code changes
+4. **If snapshots fail unexpectedly**: Your code change broke the UI — investigate and fix
+5. **Run `make test-acceptance`** to verify the app launches and key UI elements are present (local only)
+
+Snapshot baselines live in `Tests/VidPareTests/__Snapshots__/` and must be committed to git.
+
+Acceptance tests are **local-only** — they require Accessibility permissions for the terminal process (System Settings > Privacy & Security > Accessibility). They cannot run in GitHub Actions CI because SIP prevents granting accessibility permissions on hosted runners.
+
+**All new features, UI/UX bug fixes, and visual tweaks must include corresponding snapshot tests.** Add or update snapshot test cases in `Tests/VidPareTests/SnapshotTests.swift` that cover the affected views and states. If the change affects interactive behavior, add acceptance test cases in `Tests/VidPareAcceptanceTests/AcceptanceTests.swift` as well.
+
 ## Key Technical Conventions
 
 - **Supported formats**: MP4, MOV, M4V only (no MKV/AVI/WebM)

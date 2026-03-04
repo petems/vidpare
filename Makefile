@@ -54,6 +54,18 @@ test: ## Run unit tests
 test-verbose: ## Run unit tests with verbose output
 	swift test -v
 
+.PHONY: test-snapshots
+test-snapshots: ## Run snapshot tests only
+	swift test --filter SnapshotTests $(V_FLAG)
+
+.PHONY: test-record-snapshots
+test-record-snapshots: ## Re-record all snapshot baselines
+	SNAPSHOT_TESTING_RECORD=1 swift test --filter SnapshotTests $(V_FLAG)
+
+.PHONY: test-acceptance
+test-acceptance: build ## Run acceptance tests (requires accessibility permissions)
+	VIDPARE_BINARY=$(DEBUG_BIN) swift test --filter VidPareAcceptanceTests $(V_FLAG)
+
 .PHONY: coverage
 coverage: ## Run tests with code coverage and generate LCOV report
 	swift test --enable-code-coverage -v
@@ -114,7 +126,7 @@ resolve: ## Resolve package dependencies
 	swift package resolve
 
 .PHONY: check
-check: lint build test ## Run lint, build, and tests (pre-push check)
+check: lint build test test-acceptance ## Run lint, build, and all tests (pre-push check)
 	@echo "All checks passed."
 
 # ── Help ─────────────────────────────────────────────────────────────

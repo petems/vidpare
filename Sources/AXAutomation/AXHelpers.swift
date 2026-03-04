@@ -189,38 +189,9 @@ public func axFrame(of element: AXUIElement) -> CGRect? {
 
 /// Simulate a mouse drag from one screen point to another.
 public func simulateDrag(from start: CGPoint, to end: CGPoint, steps: Int = 10) {
-  let source = CGEventSource(stateID: .combinedSessionState)
-
-  CGEvent(
-    mouseEventSource: source,
-    mouseType: .leftMouseDown,
-    mouseCursorPosition: start,
-    mouseButton: .left
-  )?.post(tap: .cghidEventTap)
-  Thread.sleep(forTimeInterval: 0.05)
-
-  for step in 1...steps {
-    let fraction = CGFloat(step) / CGFloat(steps)
-    let point = CGPoint(
-      x: start.x + (end.x - start.x) * fraction,
-      y: start.y + (end.y - start.y) * fraction
-    )
-    CGEvent(
-      mouseEventSource: source,
-      mouseType: .leftMouseDragged,
-      mouseCursorPosition: point,
-      mouseButton: .left
-    )?.post(tap: .cghidEventTap)
-    Thread.sleep(forTimeInterval: 0.02)
-  }
-
-  CGEvent(
-    mouseEventSource: source,
-    mouseType: .leftMouseUp,
-    mouseCursorPosition: end,
-    mouseButton: .left
-  )?.post(tap: .cghidEventTap)
-  Thread.sleep(forTimeInterval: 0.05)
+  let normalizedSteps = max(steps, 1)
+  let duration = max(Double(normalizedSteps) * 0.02, 0.2)
+  axDrag(from: start, to: end, duration: duration)
 }
 
 /// Wait for a condition to become true, polling at intervals.

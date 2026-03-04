@@ -13,8 +13,9 @@ enum AccessibilityID {
   static let timeline = "vidpare.timeline"
   static let startHandle = "vidpare.timeline.startHandle"
   static let endHandle = "vidpare.timeline.endHandle"
-  static let trimHandleStart = "vidpare.trimHandle.start"
-  static let trimHandleEnd = "vidpare.trimHandle.end"
+  // Legacy aliases kept to avoid breaking existing AX scripts/tests.
+  static let trimHandleStart = startHandle
+  static let trimHandleEnd = endHandle
 
   // ExportSheet
   static let exportButton = "vidpare.export.exportButton"

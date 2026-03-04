@@ -60,48 +60,49 @@ struct DemoScenario {
     guard let timeline = findElement(withIdentifier: "vidpare.timeline", in: window) else {
       throw ScenarioError.elementNotFound("vidpare.timeline")
     }
+    guard let startHandle = findElement(withIdentifier: "vidpare.timeline.startHandle", in: window) else {
+      throw ScenarioError.elementNotFound("vidpare.timeline.startHandle")
+    }
+    guard let endHandle = findElement(withIdentifier: "vidpare.timeline.endHandle", in: window) else {
+      throw ScenarioError.elementNotFound("vidpare.timeline.endHandle")
+    }
 
-    // Drag start handle from left edge to ~4s mark (4/14 ≈ 0.29)
-    try dragTrimHandle(timeline, fromFraction: 0.0, toFraction: 4.0 / 14.0, isStart: true)
+    // Drag start handle to ~4s mark (4/14 ≈ 0.29)
+    try dragTrimHandle(handle: startHandle, timeline: timeline, toFraction: 4.0 / 14.0)
     sleep(for: 0.8)
 
-    // Drag end handle from right edge to ~7s mark (7/14 = 0.50)
-    try dragTrimHandle(timeline, fromFraction: 1.0, toFraction: 7.0 / 14.0, isStart: false)
+    // Drag end handle to ~7s mark (7/14 = 0.50)
+    try dragTrimHandle(handle: endHandle, timeline: timeline, toFraction: 7.0 / 14.0)
     sleep(for: 1.0)
   }
 
   private func dragTrimHandle(
-    _ timeline: AXUIElement,
-    fromFraction: CGFloat,
+    handle: AXUIElement,
+    timeline: AXUIElement,
     toFraction: CGFloat,
-    isStart: Bool,
     duration: TimeInterval = 0.6
   ) throws {
-    guard let position = axPosition(of: timeline),
-      let size = axSize(of: timeline)
+    guard let handlePos = axPosition(of: handle),
+      let handleSize = axSize(of: handle)
+    else {
+      throw ScenarioError.cannotGetElementFrame("trim handle")
+    }
+    guard let timelinePos = axPosition(of: timeline),
+      let timelineSize = axSize(of: timeline)
     else {
       throw ScenarioError.cannotGetElementFrame("timeline")
     }
 
-    let handleWidth: CGFloat = 12
-    let midY = position.y + (size.height / 2.0)
+    let startPoint = CGPoint(
+      x: handlePos.x + handleSize.width / 2.0,
+      y: handlePos.y + handleSize.height / 2.0
+    )
+    let endPoint = CGPoint(
+      x: timelinePos.x + toFraction * timelineSize.width,
+      y: timelinePos.y + timelineSize.height / 2.0
+    )
 
-    // Handles are clamped to stay within the timeline:
-    // Start handle offset = max(0, x - 12), end handle offset = min(x, width - 12)
-    let fromX: CGFloat
-    if isStart {
-      let handleOffset = max(0, fromFraction * size.width - handleWidth)
-      fromX = position.x + handleOffset + (handleWidth / 2.0)
-    } else {
-      let handleOffset = min(fromFraction * size.width, size.width - handleWidth)
-      fromX = position.x + handleOffset + (handleWidth / 2.0)
-    }
-
-    let toX = position.x + (toFraction * size.width)
-    let startPoint = CGPoint(x: fromX, y: midY)
-    let endPoint = CGPoint(x: toX, y: midY)
-
-    // Smoothly move cursor to the handle
+    // Smoothly move cursor to the handle center
     let current = CGEvent(source: nil)?.location ?? startPoint
     smoothMoveCursor(from: current, to: startPoint, duration: 0.3)
 

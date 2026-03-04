@@ -41,6 +41,7 @@ struct TimelineView: View {
             }
         }
         .frame(height: 56)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(AccessibilityID.timeline)
     }
 
@@ -137,6 +138,9 @@ struct TimelineView: View {
                         }
                     }
             )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(isStart ? "Start trim handle" : "End trim handle")
+            .accessibilityIdentifier(isStart ? AccessibilityID.startHandle : AccessibilityID.endHandle)
             .cursor(.resizeLeftRight)
     }
 

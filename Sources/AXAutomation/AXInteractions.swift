@@ -56,14 +56,16 @@ public func axSmoothMoveCursor(
 }
 
 /// Post a left mouse click at an absolute screen point.
-public func axPostMouseClick(at point: CGPoint) {
+@discardableResult
+public func axPostMouseClick(at point: CGPoint) -> Bool {
   let mouseDown = CGEvent(
     mouseEventSource: sharedEventSource,
     mouseType: .leftMouseDown,
     mouseCursorPosition: point,
     mouseButton: .left
   )
-  mouseDown?.post(tap: .cghidEventTap)
+  guard let mouseDown else { return false }
+  mouseDown.post(tap: .cghidEventTap)
 
   let mouseUp = CGEvent(
     mouseEventSource: sharedEventSource,
@@ -71,7 +73,9 @@ public func axPostMouseClick(at point: CGPoint) {
     mouseCursorPosition: point,
     mouseButton: .left
   )
-  mouseUp?.post(tap: .cghidEventTap)
+  guard let mouseUp else { return false }
+  mouseUp.post(tap: .cghidEventTap)
+  return true
 }
 
 /// Smoothly move the cursor to an element center and click it.
@@ -84,8 +88,7 @@ public func axMoveAndClick(_ element: AXUIElement, duration: TimeInterval = 0.25
   let center = CGPoint(x: position.x + size.width / 2.0, y: position.y + size.height / 2.0)
   let start = CGEvent(source: nil)?.location ?? center
   axSmoothMoveCursor(from: start, to: center, duration: duration)
-  axPostMouseClick(at: center)
-  return true
+  return axPostMouseClick(at: center)
 }
 
 /// Simulate a smooth mouse drag from one point to another.

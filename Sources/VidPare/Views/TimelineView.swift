@@ -137,16 +137,24 @@ struct TimelineView: View {
                         }
                     }
             )
-            .offset(x: isStart ? x - 12 : x)
+            .offset(x: Self.trimHandleOffset(isStart: isStart, x: x, width: width))
             .accessibilityIdentifier(isStart ? AccessibilityID.trimHandleStart : AccessibilityID.trimHandleEnd)
             .cursor(.resizeLeftRight)
     }
 
     private func xPosition(for time: CMTime, in width: CGFloat) -> CGFloat {
+        Self.xPosition(for: time, totalSeconds: totalSeconds, in: width)
+    }
+
+    static func xPosition(for time: CMTime, totalSeconds: Double, in width: CGFloat) -> CGFloat {
         let seconds = CMTimeGetSeconds(time)
         guard seconds.isFinite else { return 0 }
         let clamped = min(max(seconds, 0), totalSeconds)
         return CGFloat(clamped / totalSeconds) * width
+    }
+
+    static func trimHandleOffset(isStart: Bool, x: CGFloat, width: CGFloat) -> CGFloat {
+        isStart ? max(0, x - 12) : min(width - 12, x)
     }
 }
 

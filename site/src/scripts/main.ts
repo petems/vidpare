@@ -1,6 +1,10 @@
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const markReady = (): void => {
+  const stagedNodes = document.querySelectorAll<HTMLElement>('[data-stage]');
+  stagedNodes.forEach((node, index) => {
+    node.style.setProperty('--stage-index', String(index));
+  });
   document.documentElement.classList.add('js-ready');
 };
 
@@ -9,27 +13,4 @@ if (!prefersReducedMotion && 'startViewTransition' in document) {
   (document as Document & { startViewTransition: (callback: () => void) => void }).startViewTransition(markReady);
 } else {
   markReady();
-}
-
-const revealNodes = document.querySelectorAll<HTMLElement>('.reveal');
-if (!prefersReducedMotion && 'IntersectionObserver' in window) {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('in-view');
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.2 }
-  );
-
-  revealNodes.forEach((node) => {
-    observer.observe(node);
-  });
-} else {
-  revealNodes.forEach((node) => {
-    node.classList.add('in-view');
-  });
 }

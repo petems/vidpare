@@ -1,14 +1,17 @@
 ---
-import MainLayout from '../layouts/MainLayout.astro';
-import { siteConfig } from '../content/site.config';
-import { faqs, featureItems } from '../content/features';
 import FeatureIcon from '../components/FeatureIcon.astro';
+import { faqs, featureItems } from '../content/features';
+import { siteConfig } from '../content/site.config';
+import MainLayout from '../layouts/MainLayout.astro';
 ---
 
 <MainLayout>
-  <main id="top">
-    <header class="site-header">
-      <a class="brand" href="#top">{siteConfig.appName}</a>
+  <main id="top" class="studio-shell">
+    <header class="site-header panel" data-stage>
+      <a class="brand" href="#top">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>{siteConfig.appName}</span>
+      </a>
       <nav>
         <a href="#features">Features</a>
         <a href="#tech">Tech</a>
@@ -16,40 +19,33 @@ import FeatureIcon from '../components/FeatureIcon.astro';
       </nav>
     </header>
 
-    <section class="hero surface reveal">
-      <div class="hero-text">
-        <p class="eyebrow">Native macOS video trimmer</p>
+    <section class="hero panel" data-stage>
+      <div class="hero-copy">
+        <p class="eyebrow">Native macOS Video Trimmer</p>
         <h1>{siteConfig.heroTitle}</h1>
         <p class="lede">{siteConfig.heroSubtitle}</p>
         <div class="cta-row">
           <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">{siteConfig.cta.primaryLabel}</a>
           <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">{siteConfig.cta.secondaryLabel}</a>
         </div>
-        <p class="microcopy">Does one thing well: trim videos easily, quickly, and without leaving your Mac.</p>
       </div>
-      <div class="hero-visual">
-        <div class="app-window">
-          <div class="app-titlebar">
-            <span class="dot red"></span>
-            <span class="dot yellow"></span>
-            <span class="dot green"></span>
-            <span class="app-title">VidPare</span>
-          </div>
-          <div class="app-body">
-            <div class="app-timeline">
-              <div class="timeline-track">
-                <div class="timeline-thumb"></div>
-                <div class="timeline-selected"></div>
-                <div class="timeline-thumb"></div>
-              </div>
-            </div>
-            <div class="app-controls">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span class="time-label">00:12 / 01:47</span>
-            </div>
-          </div>
+
+      <aside class="hero-console" aria-label="Trim timeline preview">
+        <p class="console-title">Precision Trim Console</p>
+        <div class="timeline-ribbon" aria-hidden="true">
+          <span class="rail"></span>
+          <span class="handle in"></span>
+          <span class="selection"></span>
+          <span class="handle out"></span>
         </div>
-      </div>
+        <div class="console-readout" aria-label="Timeline range values">
+          <span>IN 00:12.14</span>
+          <span>OUT 00:58.20</span>
+          <span>LEN 00:46.06</span>
+        </div>
+        <p class="console-note">One focused tool for clipping exactly what you need, with no export surprises.</p>
+      </aside>
+
       <div class="hero-demo">
         <video autoplay muted loop playsinline preload="metadata"
                poster="/demo-poster.jpg" width="1280" height="800"
@@ -57,76 +53,90 @@ import FeatureIcon from '../components/FeatureIcon.astro';
           <source src="/demo.mp4" type="video/mp4" />
         </video>
       </div>
+
+      <ul class="signal-strip" aria-label="Key guarantees">
+        {
+          siteConfig.trustItems.map((item) => (
+            <li>{item}</li>
+          ))
+        }
+      </ul>
     </section>
 
-    <section class="trust-strip" aria-label="Key guarantees">
-      {
-        siteConfig.trustItems.map((item) => (
-          <span class="pill">{item}</span>
-        ))
-      }
-    </section>
+    <section id="features" class="feature-section" data-stage>
+      <div class="section-head">
+        <p class="section-kicker">Capabilities</p>
+        <h2>Built around one unforgettable action: precise timeline trimming.</h2>
+      </div>
 
-    <section id="features" class="feature-grid reveal">
-      {
-        featureItems.map((feature) => (
-          <article class="card">
-            {feature.icon && (
-              <div class="card-icon" aria-hidden="true">
-                <FeatureIcon name={feature.icon} />
-              </div>
-            )}
-            <p class="badge">{feature.badge}</p>
-            <h2>{feature.title}</h2>
-            <p>{feature.body}</p>
-          </article>
-        ))
-      }
-    </section>
-
-    <section id="tech" class="tech-block surface reveal">
-      <h2>Built from scratch for macOS</h2>
-      <p>
-        VidPare uses Apple's own media frameworks for hardware-accelerated trimming.
-        No external tools, no command-line dependencies — just a clean, native Mac app
-        that works the way you'd expect.
-      </p>
-      <div class="code-chip">
-        <span>SwiftUI Shell</span>
-        <span>VideoEngine (AVFoundation)</span>
-        <span>No ffmpeg dependency</span>
+      <div class="feature-grid">
+        {
+          featureItems.map((feature) => (
+            <article class="feature-card panel">
+              {feature.icon && (
+                <div class="card-icon" aria-hidden="true">
+                  <FeatureIcon name={feature.icon} />
+                </div>
+              )}
+              <p class="badge">{feature.badge}</p>
+              <h3>{feature.title}</h3>
+              <p>{feature.body}</p>
+            </article>
+          ))
+        }
       </div>
     </section>
 
-    <section class="workflow reveal">
-      <h2>How it works</h2>
-      <ol>
-        <li>
-          <strong>Open your clip</strong>
-          <p>Drop in MP4, MOV, or M4V directly from Finder.</p>
-        </li>
-        <li>
-          <strong>Set trim points</strong>
-          <p>Use timeline handles to choose exactly what you want to keep.</p>
-        </li>
-        <li>
-          <strong>Export fast</strong>
-          <p>Use passthrough where possible for near-instant outputs.</p>
-        </li>
-      </ol>
+    <section id="tech" class="systems" data-stage>
+      <article class="tech-block panel">
+        <p class="section-kicker">Engine</p>
+        <h2>Built from scratch for macOS.</h2>
+        <p>
+          VidPare uses Apple's own media frameworks for hardware-accelerated trimming.
+          No external tools, no command-line dependencies, and no translation layers.
+        </p>
+        <div class="code-chip">
+          <span>SwiftUI Shell</span>
+          <span>VideoEngine (AVFoundation)</span>
+          <span>No ffmpeg dependency</span>
+        </div>
+      </article>
+
+      <article class="workflow panel">
+        <p class="section-kicker">Flow</p>
+        <h2>Three moves. Done.</h2>
+        <ol>
+          <li>
+            <strong>Open your clip</strong>
+            <p>Drop in MP4, MOV, or M4V directly from Finder.</p>
+          </li>
+          <li>
+            <strong>Set trim points</strong>
+            <p>Place IN and OUT handles on the ribbon timeline with frame-level intent.</p>
+          </li>
+          <li>
+            <strong>Export fast</strong>
+            <p>Use passthrough whenever possible for near-instant output.</p>
+          </li>
+        </ol>
+      </article>
     </section>
 
-    <section class="cta-banner reveal" aria-label="download">
-      <h2>Free, open source, and built for macOS creators</h2>
-      <p>Use VidPare when you want trimming done in seconds, not a heavyweight editing suite.</p>
+    <section class="cta-banner panel" data-stage aria-label="download">
+      <div>
+        <p class="section-kicker">Ship It</p>
+        <h2>Free, open source, and tuned for speed.</h2>
+        <p>Use VidPare when you want a cut in seconds, not a full editing session.</p>
+      </div>
       <div class="cta-row">
         <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">{siteConfig.cta.primaryLabel}</a>
         <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">{siteConfig.cta.secondaryLabel}</a>
       </div>
     </section>
 
-    <section id="faq" class="faq reveal">
-      <h2>FAQ</h2>
+    <section id="faq" class="faq panel" data-stage>
+      <p class="section-kicker">FAQ</p>
+      <h2>Quick answers before you download.</h2>
       {
         faqs.map((item) => (
           <details>

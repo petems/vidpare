@@ -8,6 +8,8 @@ struct TimelineView: View {
     @Bindable var trimState: TrimState
     var onSeek: (CMTime) -> Void
 
+    private static let timelineCoordinateSpace = "timeline"
+
     private var totalSeconds: Double {
         let durationSeconds = CMTimeGetSeconds(duration)
         return durationSeconds.isFinite && durationSeconds > 0 ? durationSeconds : 1
@@ -33,7 +35,7 @@ struct TimelineView: View {
                 trimHandle(isStart: false, width: width, height: height)
             }
             .frame(height: height)
-            .coordinateSpace(name: "timeline")
+            .coordinateSpace(name: Self.timelineCoordinateSpace)
             .contentShape(Rectangle())
             .onTapGesture { location in
                 let fraction = max(0, min(1, location.x / width))
@@ -117,7 +119,7 @@ struct TimelineView: View {
                     .frame(width: 2, height: 20)
             )
             .gesture(
-                DragGesture(coordinateSpace: .named("timeline"))
+                DragGesture(coordinateSpace: .named(Self.timelineCoordinateSpace))
                     .onChanged { value in
                         let newX = value.location.x
                         let fraction = max(0, min(1, newX / width))

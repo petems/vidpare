@@ -70,7 +70,7 @@ final class TimelineViewTests: XCTestCase {
     for x in positions {
       let startOffset = TimelineView.trimHandleOffset(isStart: true, x: x, width: width)
       XCTAssertGreaterThanOrEqual(startOffset, 0, "Start handle off-screen at x=\(x)")
-      XCTAssertLessThanOrEqual(startOffset + 12, width + 12, "Start handle beyond right edge at x=\(x)")
+      XCTAssertLessThanOrEqual(startOffset + 12, width, "Start handle beyond right edge at x=\(x)")
 
       let endOffset = TimelineView.trimHandleOffset(isStart: false, x: x, width: width)
       XCTAssertGreaterThanOrEqual(endOffset, 0, "End handle off-screen at x=\(x)")

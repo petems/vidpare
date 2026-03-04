@@ -1,48 +1,53 @@
 export type FeatureBadge = 'free' | 'open-source' | 'native' | 'privacy';
+export type FeatureIconName = 'native-performance' | 'near-instant-exports' | 'local-privacy';
 
 export interface FeatureItem {
   title: string;
   body: string;
   badge?: FeatureBadge;
+  icon?: FeatureIconName;
 }
 
 export const featureItems: FeatureItem[] = [
   {
-    title: 'Native AVFoundation pipeline',
-    body: 'VidPare is built in Swift/SwiftUI directly on AVFoundation and VideoToolbox, so trimming performance feels like a native Mac app because it is one.',
-    badge: 'native'
+    title: 'Truly native Mac performance',
+    body: 'Built directly on Apple\'s media frameworks with hardware acceleration. Trimming is fast because VidPare is a real Mac app, not a web wrapper.',
+    badge: 'native',
+    icon: 'native-performance'
   },
   {
-    title: 'Passthrough trim speed',
-    body: 'For common cuts, VidPare can remux without re-encoding. That means fast export times, minimal quality loss, and less waiting around.',
-    badge: 'free'
+    title: 'Near-instant exports',
+    body: 'Most trims export in seconds, not minutes. VidPare skips re-encoding when possible, so you get lossless output with no waiting around.',
+    badge: 'free',
+    icon: 'near-instant-exports'
   },
   {
-    title: 'Local-first privacy',
-    body: 'Your videos stay on your machine. No upload queue, no hidden file-size wall, and no browser tab trying to pretend it is a desktop editor.',
-    badge: 'privacy'
+    title: 'Your files never leave your Mac',
+    body: 'No uploads, no cloud processing, no file-size limits. Everything happens locally on your machine — your videos stay private.',
+    badge: 'privacy',
+    icon: 'local-privacy'
   }
 ];
 
 export const faqs: Array<{ question: string; answer: string }> = [
   {
     question: 'Is VidPare really free and open source?',
-    answer: 'Yes. VidPare is MIT licensed and free to use.'
+    answer: 'Yes. VidPare is MIT licensed and completely free to use, modify, and distribute. You can browse the full source code on GitHub.'
   },
   {
     question: 'Does VidPare upload my files anywhere?',
-    answer: 'No. Processing is local on your Mac using AVFoundation.'
+    answer: 'No. All video processing happens locally on your Mac. VidPare never contacts any server, and your files never leave your machine.'
   },
   {
     question: 'Is this just a shell around ffmpeg?',
-    answer: 'No. VidPare does not depend on ffmpeg. The trimming engine is native Swift + AVFoundation.'
+    answer: 'No. VidPare is built entirely with Swift and Apple\'s AVFoundation framework. There are no external dependencies to install or manage.'
   },
   {
     question: 'What formats are supported right now?',
-    answer: 'Current focus is straightforward trimming workflows for MP4, MOV, and M4V sources.'
+    answer: 'VidPare supports MP4, MOV, and M4V files. These cover the vast majority of video files you\'ll encounter from cameras, phones, and screen recordings on macOS.'
   },
   {
     question: 'What is on the roadmap?',
-    answer: 'Near-term work includes deeper export compatibility checks, packaging improvements, and more timeline ergonomics.'
+    answer: 'Near-term priorities include improved export options, better packaging for easy installation, and timeline usability enhancements. Check GitHub Issues for the latest updates.'
   }
 ];

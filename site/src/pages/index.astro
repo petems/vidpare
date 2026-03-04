@@ -2,6 +2,7 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import { siteConfig } from '../content/site.config';
 import { faqs, featureItems } from '../content/features';
+import FeatureIcon from '../components/FeatureIcon.astro';
 ---
 
 <MainLayout>
@@ -16,14 +17,39 @@ import { faqs, featureItems } from '../content/features';
     </header>
 
     <section class="hero surface reveal">
-      <p class="eyebrow">Native macOS video trimmer</p>
-      <h1>{siteConfig.heroTitle}</h1>
-      <p class="lede">{siteConfig.heroSubtitle}</p>
-      <div class="cta-row">
-        <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">{siteConfig.cta.primaryLabel}</a>
-        <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">{siteConfig.cta.secondaryLabel}</a>
+      <div class="hero-text">
+        <p class="eyebrow">Native macOS video trimmer</p>
+        <h1>{siteConfig.heroTitle}</h1>
+        <p class="lede">{siteConfig.heroSubtitle}</p>
+        <div class="cta-row">
+          <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">{siteConfig.cta.primaryLabel}</a>
+          <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">{siteConfig.cta.secondaryLabel}</a>
+        </div>
+        <p class="microcopy">Does one thing well: trim videos easily, quickly, and without leaving your Mac.</p>
       </div>
-      <p class="microcopy">Does one thing well: trim videos easily, quickly, and natively.</p>
+      <div class="hero-visual">
+        <div class="app-window">
+          <div class="app-titlebar">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+            <span class="app-title">VidPare</span>
+          </div>
+          <div class="app-body">
+            <div class="app-timeline">
+              <div class="timeline-track">
+                <div class="timeline-thumb"></div>
+                <div class="timeline-selected"></div>
+                <div class="timeline-thumb"></div>
+              </div>
+            </div>
+            <div class="app-controls">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span class="time-label">00:12 / 01:47</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="hero-demo">
         <video autoplay muted loop playsinline preload="metadata"
                poster="/demo-poster.jpg" width="1280" height="800"
@@ -45,6 +71,11 @@ import { faqs, featureItems } from '../content/features';
       {
         featureItems.map((feature) => (
           <article class="card">
+            {feature.icon && (
+              <div class="card-icon" aria-hidden="true">
+                <FeatureIcon name={feature.icon} />
+              </div>
+            )}
             <p class="badge">{feature.badge}</p>
             <h2>{feature.title}</h2>
             <p>{feature.body}</p>
@@ -54,11 +85,11 @@ import { faqs, featureItems } from '../content/features';
     </section>
 
     <section id="tech" class="tech-block surface reveal">
-      <h2>Not a shell over ffmpeg</h2>
+      <h2>Built from scratch for macOS</h2>
       <p>
-        VidPare is built directly on Apple frameworks: Swift, SwiftUI, AVFoundation, and VideoToolbox.
-        That gives you real macOS integration, hardware-accelerated media pipelines, and predictable behavior
-        without external binary glue.
+        VidPare uses Apple's own media frameworks for hardware-accelerated trimming.
+        No external tools, no command-line dependencies — just a clean, native Mac app
+        that works the way you'd expect.
       </p>
       <div class="code-chip">
         <span>SwiftUI Shell</span>
@@ -89,8 +120,8 @@ import { faqs, featureItems } from '../content/features';
       <h2>Free, open source, and built for macOS creators</h2>
       <p>Use VidPare when you want trimming done in seconds, not a heavyweight editing suite.</p>
       <div class="cta-row">
-        <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">Download Latest Release</a>
-        <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">Star on GitHub</a>
+        <a class="btn primary" href={siteConfig.cta.downloadUrl} target="_blank" rel="noreferrer">{siteConfig.cta.primaryLabel}</a>
+        <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">{siteConfig.cta.secondaryLabel}</a>
       </div>
     </section>
 
@@ -106,6 +137,11 @@ import { faqs, featureItems } from '../content/features';
       }
     </section>
   </main>
+
+  <footer class="site-footer">
+    <p>&copy; {new Date().getFullYear()} VidPare &middot; <a href="https://github.com/petems/vidpare/blob/main/LICENSE" target="_blank" rel="noreferrer">MIT License</a> &middot; <a href="https://github.com/petems/vidpare" target="_blank" rel="noreferrer">GitHub</a></p>
+    <p class="footer-note">Built with Swift &amp; SwiftUI for macOS</p>
+  </footer>
 
   <script src="../scripts/main.ts"></script>
 </MainLayout>

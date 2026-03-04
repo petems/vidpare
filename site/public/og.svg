@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f7fbff"/>
+      <stop offset="100%" stop-color="#dce7ff"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0a6cff"/>
+      <stop offset="100%" stop-color="#4ea1ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <text x="100" y="220" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="800" fill="#0f172a" letter-spacing="-2">VidPare</text>
+  <text x="100" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="36" fill="#5b6b85">Trim videos fast on macOS.</text>
+  <text x="100" y="350" font-family="system-ui, -apple-system, sans-serif" font-size="36" fill="#5b6b85">No uploads. No nonsense.</text>
+  <rect x="100" y="400" width="240" height="50" rx="25" fill="url(#btn)"/>
+  <text x="145" y="432" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="600" fill="white">Download for macOS</text>
+  <text x="100" y="530" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="#8a9bba">Free &amp; open source &#183; Native macOS &#183; MIT License</text>
+  <!-- App window mockup -->
+  <rect x="700" y="120" width="400" height="380" rx="12" fill="#1a1a2e" stroke="#3a3a5a" stroke-width="1"/>
+  <rect x="700" y="120" width="400" height="36" rx="12" fill="#262640"/>
+  <rect x="700" y="144" width="400" height="12" fill="#262640"/>
+  <circle cx="720" cy="138" r="6" fill="#ff5f57"/>
+  <circle cx="738" cy="138" r="6" fill="#febc2e"/>
+  <circle cx="756" cy="138" r="6" fill="#28c840"/>
+  <!-- Timeline mockup -->
+  <rect x="724" y="340" width="352" height="40" rx="6" fill="#2a2a44"/>
+  <rect x="740" y="356" width="320" height="8" rx="4" fill="#3a3a5a"/>
+  <rect x="780" y="346" width="4" height="28" rx="2" fill="#0a6cff"/>
+  <rect x="780" y="356" width="140" height="8" rx="4" fill="rgba(10,108,255,0.4)"/>
+  <rect x="920" y="346" width="4" height="28" rx="2" fill="#0a6cff"/>
+  <!-- Play button -->
+  <polygon points="740,420 760,430 740,440" fill="#0a6cff"/>
+  <text x="770" y="436" font-family="monospace" font-size="13" fill="#8888aa">00:12 / 01:47</text>
+</svg>

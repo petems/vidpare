@@ -1,7 +1,7 @@
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const markReady = (): void => {
-  document.documentElement.classList.add('is-ready');
+  document.documentElement.classList.add('js-ready');
 };
 
 if (!prefersReducedMotion && 'startViewTransition' in document) {

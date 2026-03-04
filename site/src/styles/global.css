@@ -76,6 +76,10 @@ a {
   font-weight: 700;
 }
 
+[id] {
+  scroll-margin-top: 2rem;
+}
+
 .surface {
   background: color-mix(in srgb, var(--surface) 88%, #eff5ff 12%);
   border: 1px solid #dce7ff;
@@ -86,7 +90,110 @@ a {
 .hero {
   padding: clamp(2rem, 3vw, 3rem);
   display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+}
+
+.hero-text {
+  display: grid;
   gap: 1rem;
+}
+
+.hero-visual {
+  display: flex;
+  justify-content: center;
+}
+
+.app-window {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #c8d8f0;
+  background: #1a1a2e;
+  box-shadow: 0 16px 48px -12px rgba(0, 45, 120, 0.25);
+}
+
+.app-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #262640;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.dot.red { background: #ff5f57; }
+.dot.yellow { background: #febc2e; }
+.dot.green { background: #28c840; }
+
+.app-title {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  color: #8888aa;
+  font-weight: 500;
+}
+
+.app-body {
+  padding: 20px 16px 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.app-timeline {
+  background: #2a2a44;
+  border-radius: 8px;
+  padding: 12px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+.timeline-track {
+  flex: 1;
+  height: 6px;
+  background: #3a3a5a;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.timeline-thumb {
+  width: 4px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.timeline-selected {
+  flex: 1;
+  height: 6px;
+  background: linear-gradient(90deg, rgba(10, 108, 255, 0.5), rgba(10, 108, 255, 0.3));
+  max-width: 55%;
+}
+
+.app-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #8888aa;
+}
+
+.app-controls svg {
+  color: var(--primary);
+}
+
+.time-label {
+  font-size: 0.78rem;
+  font-family: 'IBM Plex Sans', monospace;
 }
 
 .hero h1 {
@@ -157,6 +264,10 @@ summary:focus-visible {
 }
 
 .hero-demo {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 960px;
+  justify-self: center;
   margin-top: 1rem;
   border-radius: 12px;
   overflow: hidden;
@@ -199,6 +310,18 @@ summary:focus-visible {
   border: 1px solid #d9e6ff;
   border-radius: 20px;
   padding: 1.1rem;
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #edf3ff, #dce7ff);
+  color: var(--primary);
+  margin-bottom: 0.4rem;
 }
 
 .card h2 {
@@ -311,20 +434,61 @@ summary:focus-visible {
   font-weight: 600;
 }
 
-.reveal {
+.faq details p {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: opacity 300ms ease, margin 300ms ease;
+  margin: 0;
+}
+
+.faq details[open] p {
+  max-height: none;
+  opacity: 1;
+  margin-top: 0.5rem;
+}
+
+.site-footer {
+  width: min(1120px, 92vw);
+  margin: 0 auto;
+  padding: 2rem 0;
+  border-top: 1px solid #d9e6ff;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.site-footer p {
+  margin: 0.25rem 0;
+}
+
+.site-footer a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
+.footer-note {
+  font-size: 0.8rem;
+  color: #8a9bba;
+}
+
+html.js-ready .reveal {
   opacity: 0;
   transform: translateY(18px);
 }
 
-html.is-ready .reveal.in-view,
-html:not(.is-ready) .reveal {
+html.js-ready .reveal.in-view {
   opacity: 1;
   transform: translateY(0);
   transition: opacity 500ms ease, transform 500ms ease;
 }
 
 @supports (animation-timeline: view()) {
-  .reveal {
+  html.js-ready .reveal {
     opacity: 1;
     transform: none;
     animation: rise linear both;
@@ -353,7 +517,7 @@ html:not(.is-ready) .reveal {
     scroll-behavior: auto !important;
   }
 
-  .reveal {
+  html.js-ready .reveal {
     opacity: 1;
     transform: none;
   }
@@ -367,5 +531,13 @@ html:not(.is-ready) .reveal {
 
   .site-header nav {
     flex-wrap: wrap;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-visual {
+    order: -1;
   }
 }

@@ -8,6 +8,7 @@ final class VideoEngine: @unchecked Sendable {
     private(set) var progress: Double = 0
     private var exportSession: AVAssetExportSession?
     private var gifExportTask: Task<Void, Error>?
+    private var exportGeneration: UInt64 = 0
     private var progressTimer: Timer?
 
     struct ExportResult {
@@ -47,6 +48,7 @@ final class VideoEngine: @unchecked Sendable {
         sourceFileType: AVFileType? = nil,
         gifSettings: GIFExportSettings = GIFExportSettings()
     ) async throws -> ExportResult {
+        let generation = beginExportGeneration()
         let (requestedFormat, requestedQuality) = try await resolveRequestedSelection(
             asset: asset,
             format: format,
@@ -67,7 +69,8 @@ final class VideoEngine: @unchecked Sendable {
                 asset: asset,
                 trimRange: trimRange,
                 outputURL: outputURL,
-                gifSettings: gifSettings
+                gifSettings: gifSettings,
+                generation: generation
             )
         }
 
@@ -79,7 +82,7 @@ final class VideoEngine: @unchecked Sendable {
             trimRange: trimRange,
             tempOutputURL: tempOutputURL
         )
-        startProgressPolling()
+        startProgressPolling(generation: generation)
 
         let startDate = Date()
         let destinationExistedBeforeExport = FileManager.default.fileExists(atPath: outputURL.path)
@@ -93,16 +96,20 @@ final class VideoEngine: @unchecked Sendable {
                 tempOutputURL: tempOutputURL,
                 outputURL: outputURL,
                 destinationExistedBeforeExport: destinationExistedBeforeExport,
-                startDate: startDate
+                startDate: startDate,
+                generation: generation
             )
         } catch {
-            resetExportState()
-            try? FileManager.default.removeItem(at: tempOutputURL)
+            resetExportStateIfCurrent(generation: generation)
+            if isCurrentGeneration(generation) {
+                try? FileManager.default.removeItem(at: tempOutputURL)
+            }
             throw error
         }
     }
 
     func cancelExport() {
+        _ = beginExportGeneration()
         exportSession?.cancelExport()
         gifExportTask?.cancel()
         gifExportTask = nil
@@ -219,6 +226,20 @@ final class VideoEngine: @unchecked Sendable {
 
     // MARK: - Private
 
+    private func beginExportGeneration() -> UInt64 {
+        exportGeneration &+= 1
+        return exportGeneration
+    }
+
+    private func isCurrentGeneration(_ generation: UInt64) -> Bool {
+        exportGeneration == generation
+    }
+
+    private func resetExportStateIfCurrent(generation: UInt64) {
+        guard isCurrentGeneration(generation) else { return }
+        resetExportState()
+    }
+
     private func resetExportState() {
         stopProgressPolling()
         exportSession = nil
@@ -290,10 +311,15 @@ final class VideoEngine: @unchecked Sendable {
         tempOutputURL: URL,
         outputURL: URL,
         destinationExistedBeforeExport: Bool,
-        startDate: Date
+        startDate: Date,
+        generation: UInt64
     ) throws -> ExportResult {
+        guard isCurrentGeneration(generation) else {
+            throw ExportError.cancelled
+        }
+
         guard session.status == .completed else {
-            resetExportState()
+            resetExportStateIfCurrent(generation: generation)
             try? FileManager.default.removeItem(at: tempOutputURL)
             if session.status == .cancelled {
                 throw ExportError.cancelled
@@ -305,7 +331,8 @@ final class VideoEngine: @unchecked Sendable {
             tempOutputURL: tempOutputURL,
             outputURL: outputURL,
             destinationExistedBeforeExport: destinationExistedBeforeExport,
-            startDate: startDate
+            startDate: startDate,
+            generation: generation
         )
     }
 
@@ -313,8 +340,13 @@ final class VideoEngine: @unchecked Sendable {
         tempOutputURL: URL,
         outputURL: URL,
         destinationExistedBeforeExport: Bool,
-        startDate: Date
+        startDate: Date,
+        generation: UInt64
     ) throws -> ExportResult {
+        guard isCurrentGeneration(generation) else {
+            throw ExportError.cancelled
+        }
+
         let finalizedURL = try finalizeExportedFile(
             from: tempOutputURL,
             to: outputURL,
@@ -331,9 +363,10 @@ final class VideoEngine: @unchecked Sendable {
         return ExportResult(outputURL: finalizedURL, duration: elapsed, fileSize: fileSize)
     }
 
-    private func startProgressPolling() {
+    private func startProgressPolling(generation: UInt64) {
         progressTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
+                guard self?.isCurrentGeneration(generation) == true else { return }
                 guard let session = self?.exportSession else { return }
                 let newProgress = Double(session.progress)
                 if newProgress >= (self?.progress ?? 0) {
@@ -378,7 +411,8 @@ private extension VideoEngine {
         asset: AVURLAsset,
         trimRange: CMTimeRange,
         outputURL: URL,
-        gifSettings: GIFExportSettings
+        gifSettings: GIFExportSettings,
+        generation: UInt64
     ) async throws -> ExportResult {
         let trimSeconds = CMTimeGetSeconds(trimRange.duration)
         guard trimSeconds > 0, trimSeconds.isFinite else {
@@ -396,7 +430,7 @@ private extension VideoEngine {
         isExporting = true
         progress = 0
 
-        let task = Task.detached(priority: .userInitiated) { [asset, trimRange, tempOutputURL, gifSettings] in
+        let task = Task.detached(priority: .userInitiated) { [asset, trimRange, tempOutputURL, gifSettings, generation] in
             try await Self.renderGIF(
                 asset: asset,
                 trimRange: trimRange,
@@ -404,6 +438,7 @@ private extension VideoEngine {
                 settings: gifSettings
             ) { [engine = self] updatedProgress in
                 await MainActor.run {
+                    guard engine.isCurrentGeneration(generation), engine.isExporting else { return }
                     if updatedProgress >= engine.progress {
                         engine.progress = updatedProgress
                     }
@@ -416,21 +451,29 @@ private extension VideoEngine {
         do {
             try await task.value
             gifExportTask = nil
+            guard isCurrentGeneration(generation) else {
+                throw ExportError.cancelled
+            }
             return try finalizeExportedTemporaryResult(
                 tempOutputURL: tempOutputURL,
                 outputURL: outputURL,
                 destinationExistedBeforeExport: destinationExistedBeforeExport,
-                startDate: startDate
+                startDate: startDate,
+                generation: generation
             )
         } catch is CancellationError {
             gifExportTask = nil
-            resetExportState()
-            try? FileManager.default.removeItem(at: tempOutputURL)
+            resetExportStateIfCurrent(generation: generation)
+            if isCurrentGeneration(generation) {
+                try? FileManager.default.removeItem(at: tempOutputURL)
+            }
             throw ExportError.cancelled
         } catch {
             gifExportTask = nil
-            resetExportState()
-            try? FileManager.default.removeItem(at: tempOutputURL)
+            resetExportStateIfCurrent(generation: generation)
+            if isCurrentGeneration(generation) {
+                try? FileManager.default.removeItem(at: tempOutputURL)
+            }
             throw error
         }
     }

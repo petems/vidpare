@@ -60,7 +60,7 @@ test-snapshots: ## Run snapshot tests only
 
 .PHONY: test-record-snapshots
 test-record-snapshots: ## Re-record all snapshot baselines
-	SNAPSHOT_TESTING_RECORD=1 swift test --filter SnapshotTests $(V_FLAG)
+	SNAPSHOT_TESTING_RECORD=all swift test --filter SnapshotTests $(V_FLAG)
 
 .PHONY: test-acceptance
 test-acceptance: build ## Run acceptance tests (requires accessibility permissions)

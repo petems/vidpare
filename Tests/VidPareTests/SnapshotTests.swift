@@ -34,7 +34,7 @@ final class SnapshotTests: XCTestCase {
       onSetInPoint: {},
       onSetOutPoint: {}
     )
-    try snapshotView(view, size: CGSize(width: 900, height: 80))
+    try snapshotView(view, size: CGSize(width: 900, height: 96))
   }
 
   func testPlayerControls_playing() throws {
@@ -51,7 +51,7 @@ final class SnapshotTests: XCTestCase {
       onSetInPoint: {},
       onSetOutPoint: {}
     )
-    try snapshotView(view, size: CGSize(width: 900, height: 80))
+    try snapshotView(view, size: CGSize(width: 900, height: 96))
   }
 
   // MARK: - TimelineView
@@ -101,6 +101,30 @@ final class SnapshotTests: XCTestCase {
     try snapshotView(view, size: CGSize(width: 900, height: 80))
   }
 
+  func testTimelineView_withThumbnails_mockupStyle() throws {
+    let trimState = TrimState()
+    trimState.startTime = CMTime(seconds: 4, preferredTimescale: 600)
+    trimState.endTime = CMTime(seconds: 21, preferredTimescale: 600)
+
+    let thumbnails = [
+      thumbnail(color: .systemBlue),
+      thumbnail(color: .systemPurple),
+      thumbnail(color: .systemGreen),
+      thumbnail(color: .systemOrange),
+      thumbnail(color: .systemPink),
+      thumbnail(color: .systemTeal)
+    ]
+
+    let view = TimelineView(
+      thumbnails: thumbnails,
+      duration: CMTime(seconds: 30, preferredTimescale: 600),
+      currentTime: CMTime(seconds: 12, preferredTimescale: 600),
+      trimState: trimState,
+      onSeek: { _ in }
+    )
+    try snapshotView(view, size: CGSize(width: 900, height: 80))
+  }
+
   // MARK: - ExportSheet
 
   func testExportCompletionView() throws {
@@ -134,5 +158,14 @@ final class SnapshotTests: XCTestCase {
       onDismiss: {}
     )
     try snapshotView(view, size: CGSize(width: 420, height: 540))
+  }
+
+  private func thumbnail(color: NSColor) -> NSImage {
+    let image = NSImage(size: CGSize(width: 120, height: 68))
+    image.lockFocus()
+    color.setFill()
+    NSRect(origin: .zero, size: image.size).fill()
+    image.unlockFocus()
+    return image
   }
 }

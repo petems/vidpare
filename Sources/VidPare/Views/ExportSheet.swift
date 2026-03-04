@@ -300,12 +300,20 @@ struct ExportSheet: View {
     if let window = NSApp.keyWindow {
       savePanel.beginSheetModal(for: window) { response in
         self.handleSavePanelResponse(
-          response, url: savePanel.url, format: resolved.format, quality: resolved.quality)
+          response,
+          url: savePanel.url,
+          format: resolved.format,
+          quality: resolved.quality
+        )
       }
     } else {
       savePanel.begin { response in
         self.handleSavePanelResponse(
-          response, url: savePanel.url, format: resolved.format, quality: resolved.quality)
+          response,
+          url: savePanel.url,
+          format: resolved.format,
+          quality: resolved.quality
+        )
       }
     }
   }

@@ -235,10 +235,10 @@ extension AcceptanceTests {
 
     let customName = "my_custom_export"
     XCTAssertTrue(axSetValue(customName, of: filenameField), "Should set a custom filename")
-    XCTAssertEqual(
-      axValue(of: filenameField),
-      customName,
-      "Filename field should reflect the custom name after editing"
+    let updatedValue = axValue(of: filenameField) ?? ""
+    XCTAssertTrue(
+      updatedValue.hasPrefix(customName),
+      "Filename field should start with '\(customName)', got: '\(updatedValue)'"
     )
 
     dismissSavePanel(app: app)

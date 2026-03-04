@@ -114,7 +114,7 @@ struct TimelineView: View {
                     .fill(Color.white)
                     .frame(width: 2, height: 20)
             )
-            .offset(x: isStart ? x - 12 : x)
+            .offset(x: isStart ? max(0, x - 12) : min(x, width - 12))
             .gesture(
                 DragGesture()
                     .onChanged { value in

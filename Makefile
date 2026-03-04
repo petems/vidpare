@@ -110,6 +110,32 @@ package-dmg: build-universal ## Create DMG installer
 sign: ## Sign and notarize (requires Apple credentials)
 	./scripts/release/sign-and-notarize.sh
 
+# ── Demo Recording ──────────────────────────────────────────────────
+
+DEMO_SRC_VIDEO   := scripts/demo/demo-source.mp4
+DEMO_OUTPUT      := site/public/demo.mp4
+DEMO_POSTER      := site/public/demo-poster.jpg
+
+.PHONY: demo-record
+demo-record: build ## Record a fresh demo MP4 (requires Screen Recording + Accessibility permissions)
+	@swift -e 'import ApplicationServices; exit(AXIsProcessTrusted() ? 0 : 1)' 2>/dev/null || \
+		{ echo "Error: Accessibility permissions not granted." >&2; \
+		  echo "Add your terminal to System Settings > Privacy & Security > Accessibility." >&2; \
+		  exit 1; }
+	@test -f $(DEMO_SRC_VIDEO) || \
+		{ echo "Error: Source video not found at $(DEMO_SRC_VIDEO)." >&2; \
+		  echo "Place your demo source video at that path." >&2; \
+		  exit 1; }
+	VIDPARE_BINARY=$(DEBUG_BIN) swift run DemoRecorder record \
+		--source $(DEMO_SRC_VIDEO) \
+		--output $(DEMO_OUTPUT) \
+		--poster $(DEMO_POSTER)
+
+.PHONY: demo
+demo: demo-record ## Record demo and verify output exists
+	@test -f $(DEMO_OUTPUT) && echo "Demo recorded: $(DEMO_OUTPUT)" || \
+		{ echo "Error: Demo recording failed." >&2; exit 1; }
+
 # ── Site ─────────────────────────────────────────────────────────────
 
 site/node_modules/.installed: site/package-lock.json

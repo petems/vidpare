@@ -17,6 +17,8 @@ enum AccessibilityID {
   static let cancelButton = "vidpare.export.cancelButton"
   static let formatPicker = "vidpare.export.formatPicker"
   static let qualityPicker = "vidpare.export.qualityPicker"
+  static let completionView = "vidpare.export.completionView"
+  static let doneButton = "vidpare.export.doneButton"
 
   // Toolbar
   static let toolbarOpen = "vidpare.toolbar.open"

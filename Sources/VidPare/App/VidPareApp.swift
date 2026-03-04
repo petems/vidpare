@@ -11,9 +11,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct VidPareApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+  private var initialFileURL: URL? {
+    if let path = ProcessInfo.processInfo.environment["VIDPARE_OPEN_FILE"] {
+      return URL(fileURLWithPath: path)
+    }
+    return nil
+  }
+
   var body: some Scene {
     WindowGroup {
-      ContentView()
+      ContentView(initialFileURL: initialFileURL)
     }
     .windowStyle(.titleBar)
     .defaultSize(width: 960, height: 640)

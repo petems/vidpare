@@ -24,6 +24,12 @@ import { faqs, featureItems } from '../content/features';
         <a class="btn secondary" href={siteConfig.cta.sourceUrl} target="_blank" rel="noreferrer">{siteConfig.cta.secondaryLabel}</a>
       </div>
       <p class="microcopy">Does one thing well: trim videos easily, quickly, and natively.</p>
+      <div class="hero-demo">
+        <video autoplay muted loop playsinline preload="metadata"
+               poster="/demo-poster.jpg" width="1280" height="800">
+          <source src="/demo.mp4" type="video/mp4" />
+        </video>
+      </div>
     </section>
 
     <section class="trust-strip" aria-label="Key guarantees">

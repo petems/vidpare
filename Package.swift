@@ -18,6 +18,15 @@ let package = Package(
             name: "VidPare",
             path: "Sources/VidPare"
         ),
+        .target(
+            name: "AXAutomation",
+            path: "Sources/AXAutomation"
+        ),
+        .executableTarget(
+            name: "DemoRecorder",
+            dependencies: ["AXAutomation"],
+            path: "Sources/DemoRecorder"
+        ),
         .testTarget(
             name: "VidPareTests",
             dependencies: [
@@ -32,7 +41,7 @@ let package = Package(
         ),
         .testTarget(
             name: "VidPareAcceptanceTests",
-            dependencies: [],
+            dependencies: ["AXAutomation"],
             path: "Tests/VidPareAcceptanceTests"
         ),
     ]

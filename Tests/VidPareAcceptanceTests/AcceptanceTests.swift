@@ -1,4 +1,5 @@
 import ApplicationServices
+import AXAutomation
 import XCTest
 
 final class AcceptanceTests: XCTestCase {

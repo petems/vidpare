@@ -156,6 +156,20 @@ summary:focus-visible {
   transform: translateY(-2px);
 }
 
+.hero-demo {
+  margin-top: 1rem;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #d6e4ff;
+  box-shadow: 0 8px 32px -12px rgba(0, 69, 199, 0.25);
+}
+
+.hero-demo video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .trust-strip {
   margin-top: 1rem;
   display: flex;

@@ -104,4 +104,5 @@ custom_rules:
     message: "Use os_log or Logger instead of print() in production code."
     regex: '^\s*print\('
     included: "Sources/.*\\.swift"
+    excluded: "Sources/DemoRecorder/.*\\.swift"
     severity: warning

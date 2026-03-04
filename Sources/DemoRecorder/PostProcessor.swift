@@ -27,6 +27,8 @@ struct PostProcessor {
     targetWidth: Int = 1920,
     targetBitrate: Int = 5_000_000
   ) {
+    precondition(targetWidth > 0, "targetWidth must be greater than 0")
+    precondition(targetBitrate > 0, "targetBitrate must be greater than 0")
     self.inputURL = inputURL
     self.outputURL = outputURL
     self.posterURL = posterURL

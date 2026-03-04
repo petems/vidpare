@@ -65,12 +65,23 @@ test-record-snapshots: ## Re-record all snapshot baselines
 	SNAPSHOT_TESTING_RECORD=1 swift test --filter SnapshotTests $(V_FLAG)
 
 .PHONY: test-acceptance
-test-acceptance: build ## Run acceptance tests (requires accessibility permissions)
+test-acceptance: test-acceptance-smoke test-acceptance-e2e ## Run full acceptance suite (smoke + end-to-end flows)
+
+.PHONY: test-acceptance-smoke
+test-acceptance-smoke: build ## Run acceptance smoke tests (requires accessibility permissions)
 	@swift -e 'import ApplicationServices; exit(AXIsProcessTrusted() ? 0 : 1)' 2>/dev/null || \
 		{ echo "Error: Accessibility permissions not granted." >&2; \
 		  echo "Add your terminal to System Settings > Privacy & Security > Accessibility." >&2; \
 		  exit 1; }
-	VIDPARE_BINARY=$(DEBUG_BIN) swift test --filter VidPareAcceptanceTests $(V_FLAG)
+	VIDPARE_BINARY=$(DEBUG_BIN) swift test --filter AcceptanceSmokeTests $(V_FLAG)
+
+.PHONY: test-acceptance-e2e
+test-acceptance-e2e: build ## Run acceptance end-to-end flow tests (trim + export)
+	@swift -e 'import ApplicationServices; exit(AXIsProcessTrusted() ? 0 : 1)' 2>/dev/null || \
+		{ echo "Error: Accessibility permissions not granted." >&2; \
+		  echo "Add your terminal to System Settings > Privacy & Security > Accessibility." >&2; \
+		  exit 1; }
+	VIDPARE_BINARY=$(DEBUG_BIN) swift test --filter AcceptanceFlowTests $(V_FLAG)
 
 .PHONY: coverage
 coverage: ## Run tests with code coverage and generate LCOV report

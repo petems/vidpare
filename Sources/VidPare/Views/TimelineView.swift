@@ -143,7 +143,7 @@ struct TimelineView: View {
             .offset(x: Self.trimHandleOffset(isStart: isStart, x: x, width: width))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(isStart ? "Start trim handle" : "End trim handle")
-            .accessibilityIdentifier(isStart ? AccessibilityID.trimHandleStart : AccessibilityID.trimHandleEnd)
+            .accessibilityIdentifier(isStart ? AccessibilityID.startHandle : AccessibilityID.endHandle)
             .cursor(.resizeLeftRight)
     }
 

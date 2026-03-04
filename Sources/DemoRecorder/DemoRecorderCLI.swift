@@ -4,6 +4,7 @@ import Foundation
 
 @main
 struct DemoRecorderCLI {
+  /// Entrypoint for the `DemoRecorder` command-line tool.
   static func main() async throws {
     let args = CommandLine.arguments
 
@@ -24,6 +25,7 @@ struct DemoRecorderCLI {
     }
   }
 
+  /// Prints command usage and supported options.
   static func printUsage() {
     print(
       """
@@ -39,6 +41,7 @@ struct DemoRecorderCLI {
       """)
   }
 
+  /// Executes the record command from parsed CLI arguments.
   static func runRecord(args: [String]) async throws {
     let config = try parseRecordArgs(args)
     validatePreconditions(config: config)
@@ -103,6 +106,7 @@ struct RecordConfig {
   let fps: Int
 }
 
+/// Parses `record` command options into a fully resolved configuration.
 private func parseRecordArgs(_ args: [String]) throws -> RecordConfig {
   var sourceVideoPath: String?
   var outputPath = "site/public/demo.mp4"
@@ -170,11 +174,13 @@ private func parseRecordArgs(_ args: [String]) throws -> RecordConfig {
   )
 }
 
+/// Resolves an input path against the current working directory.
 private func resolvePath(_ path: String, cwd: String) -> String {
   URL(fileURLWithPath: path, relativeTo: URL(fileURLWithPath: cwd, isDirectory: true))
     .standardized.path
 }
 
+/// Verifies source input exists and accessibility permissions are granted.
 private func validatePreconditions(config: RecordConfig) {
   guard FileManager.default.fileExists(atPath: config.resolvedSource) else {
     print("Error: Source video not found at '\(config.resolvedSource)'.")
@@ -190,6 +196,7 @@ private func validatePreconditions(config: RecordConfig) {
 
 // MARK: - Window Discovery
 
+/// Locates the front VidPare content window and returns its CGWindowID.
 private func findWindowID(pid: pid_t) throws -> CGWindowID {
   print("[1/5] Launching VidPare...")
   let app = axApp(for: pid)
@@ -225,6 +232,7 @@ private func findWindowID(pid: pid_t) throws -> CGWindowID {
 
 // MARK: - Cleanup
 
+/// Removes old `*_trimmed` artifacts to avoid save-panel overwrite prompts.
 private func cleanupTrimmedFiles(sourceVideoPath: String) {
   let sourceURL = URL(fileURLWithPath: sourceVideoPath)
   let baseName = sourceURL.deletingPathExtension().lastPathComponent
@@ -255,6 +263,7 @@ private func cleanupTrimmedFiles(sourceVideoPath: String) {
 
 // MARK: - Post-Processing
 
+/// Runs the final scaling/encoding/poster extraction step for the recording.
 private func postProcess(rawURL: URL, config: RecordConfig) async throws {
   let finalOutputURL = URL(fileURLWithPath: config.resolvedOutput)
   let posterURL = config.resolvedPoster.map { URL(fileURLWithPath: $0) }

@@ -11,6 +11,7 @@ struct PostProcessor {
   let targetWidth: Int
   let targetBitrate: Int
 
+  /// Creates a post-processor that trims, scales, and re-encodes a raw recording.
   init(
     inputURL: URL,
     outputURL: URL,
@@ -25,6 +26,7 @@ struct PostProcessor {
     self.targetBitrate = targetBitrate
   }
 
+  /// Runs the full post-processing pipeline and optionally extracts a poster frame.
   func process() async throws {
     let asset = AVURLAsset(url: inputURL)
     let duration = try await asset.load(.duration)
@@ -50,6 +52,7 @@ struct PostProcessor {
     }
   }
 
+  /// Builds a trimmed composition and matching video composition for scaling/rendering.
   private func buildComposition(
     videoTrack: AVAssetTrack,
     duration: CMTime,
@@ -104,6 +107,7 @@ struct PostProcessor {
     return (composition, videoComposition)
   }
 
+  /// Exports the composed timeline to `outputURL`, cleaning up partial output on failure.
   private func exportComposition(
     _ composition: AVMutableComposition,
     videoComposition: AVMutableVideoComposition
@@ -129,6 +133,7 @@ struct PostProcessor {
     }
   }
 
+  /// Re-encodes the composition with an explicit target bitrate using reader/writer APIs.
   private func exportWithBitrate(
     asset: AVAsset,
     videoComposition: AVMutableVideoComposition
@@ -155,6 +160,7 @@ struct PostProcessor {
     try await finishWriter(writer: writer, writerInput: writerInput)
   }
 
+  /// Configures an asset reader output that applies the supplied video composition.
   private func setupReader(
     asset: AVAsset,
     videoTrack: AVAssetTrack,
@@ -173,6 +179,7 @@ struct PostProcessor {
     return (reader, readerOutput)
   }
 
+  /// Configures an H.264 MP4 writer/input pair for the target render size and bitrate.
   private func setupWriter(
     renderSize: CGSize
   ) throws -> (AVAssetWriter, AVAssetWriterInput) {
@@ -197,6 +204,7 @@ struct PostProcessor {
     return (writer, writerInput)
   }
 
+  /// Starts reading and writing sessions and aligns the writer session start time.
   private func startPipeline(reader: AVAssetReader, writer: AVAssetWriter) throws {
     guard reader.startReading() else {
       throw reader.error ?? PostProcessorError.exportFailed
@@ -207,14 +215,26 @@ struct PostProcessor {
     writer.startSession(atSourceTime: .zero)
   }
 
+  /// Copies composed video samples from reader to writer until EOF or terminal state.
   private func pumpVideoSamples(
     reader: AVAssetReader,
     readerOutput: AVAssetReaderVideoCompositionOutput,
     writer: AVAssetWriter,
     writerInput: AVAssetWriterInput
   ) async throws {
+    var stalledNanoseconds: UInt64 = 0
+    let maxStallNanoseconds: UInt64 = 60_000_000_000
+
     while reader.status == .reading {
+      if writer.status == .failed {
+        throw writer.error ?? PostProcessorError.exportFailed
+      }
+      if writer.status == .cancelled {
+        throw PostProcessorError.exportFailed
+      }
+
       if writerInput.isReadyForMoreMediaData {
+        stalledNanoseconds = 0
         if let sampleBuffer = readerOutput.copyNextSampleBuffer() {
           if !writerInput.append(sampleBuffer) {
             throw writer.error ?? PostProcessorError.exportFailed
@@ -224,9 +244,14 @@ struct PostProcessor {
         break
       }
       try await Task.sleep(nanoseconds: 1_000_000)  // 1ms backoff while the writer catches up.
+      stalledNanoseconds += 1_000_000
+      if stalledNanoseconds >= maxStallNanoseconds {
+        throw PostProcessorError.exportFailed
+      }
     }
   }
 
+  /// Validates the reader reached a non-failed terminal state.
   private func validateReaderCompletion(_ reader: AVAssetReader) throws {
     if reader.status == .failed {
       throw reader.error ?? PostProcessorError.exportFailed
@@ -236,6 +261,7 @@ struct PostProcessor {
     }
   }
 
+  /// Finalizes writer input and verifies the writer completed successfully.
   private func finishWriter(writer: AVAssetWriter, writerInput: AVAssetWriterInput) async throws {
     writerInput.markAsFinished()
     await writer.finishWriting()
@@ -244,6 +270,7 @@ struct PostProcessor {
     }
   }
 
+  /// Extracts a JPEG poster from the midpoint of the processed video.
   private func extractPoster(from videoURL: URL, to posterURL: URL) async throws {
     let asset = AVURLAsset(url: videoURL)
     let duration = try await asset.load(.duration)

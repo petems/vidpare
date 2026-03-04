@@ -30,9 +30,12 @@ struct PostProcessor {
 
   /// Runs the full post-processing pipeline and optionally extracts a poster frame.
   func process() async throws {
-    try await Self.exportCoordinator.begin()
-    do {
-      try await withSecurityScopedResourceAccess(urls: exportRelatedURLs()) {
+    let securityScopedAccess = SecurityScopedAccess()
+    let (composition, videoComposition, compositionTrack) = try await withSecurityScopedResourceAccess(
+      securityScopedAccess,
+      urls: [inputURL, inputURL.deletingLastPathComponent()]
+    ) {
+      try await Self.exportCoordinator.withFileLoad {
         let asset = AVURLAsset(url: inputURL)
         let duration = try await asset.load(.duration)
 
@@ -42,45 +45,42 @@ struct PostProcessor {
 
         let naturalSize = try await videoTrack.load(.naturalSize)
         let preferredTransform = try await videoTrack.load(.preferredTransform)
-        let (composition, videoComposition) = try buildComposition(
+        return try buildComposition(
           videoTrack: videoTrack,
           duration: duration,
           naturalSize: naturalSize,
           preferredTransform: preferredTransform
         )
-
-        try await exportComposition(composition, videoComposition: videoComposition)
-
-        print("  Post-processed video: \(outputURL.path)")
-        if let posterURL {
-          try await extractPoster(from: outputURL, to: posterURL)
-        }
       }
-    } catch {
-      await Self.exportCoordinator.end()
-      throw error
     }
-    await Self.exportCoordinator.end()
-  }
 
-  /// Returns file URLs touched by post-processing so scoped access can be managed centrally.
-  private func exportRelatedURLs() -> [URL] {
-    var urls = [inputURL, outputURL, outputURL.deletingLastPathComponent()]
-    if let posterURL {
-      urls.append(posterURL)
-      urls.append(posterURL.deletingLastPathComponent())
+    try await Self.exportCoordinator.withExport {
+      try await exportComposition(
+        composition,
+        videoComposition: videoComposition,
+        compositionTrack: compositionTrack,
+        securityScopedAccess: securityScopedAccess
+      )
     }
-    return urls
+
+    print("  Post-processed video: \(outputURL.path)")
+    if let posterURL {
+      try await extractPoster(
+        from: outputURL,
+        to: posterURL,
+        securityScopedAccess: securityScopedAccess
+      )
+    }
   }
 
   /// Wraps post-processing with reference-counted security-scoped resource acquisition.
   private func withSecurityScopedResourceAccess<T>(
+    _ access: SecurityScopedAccess,
     urls: [URL],
     operation: () async throws -> T
   ) async throws -> T {
-    let access = SecurityScopedAccess()
     access.acquire(urls: urls)
-    defer { access.releaseAll() }
+    defer { access.release(urls: urls) }
     return try await operation()
   }
 
@@ -90,7 +90,7 @@ struct PostProcessor {
     duration: CMTime,
     naturalSize: CGSize,
     preferredTransform: CGAffineTransform
-  ) throws -> (AVMutableComposition, AVMutableVideoComposition) {
+  ) throws -> (AVMutableComposition, AVMutableVideoComposition, AVAssetTrack) {
     let aspectRatio = naturalSize.height / naturalSize.width
     let targetHeight = Int(CGFloat(targetWidth) * aspectRatio)
     let outputWidth = targetWidth % 2 == 0 ? targetWidth : targetWidth + 1
@@ -136,44 +136,52 @@ struct PostProcessor {
     instruction.layerInstructions = [layerInstruction]
     videoComposition.instructions = [instruction]
 
-    return (composition, videoComposition)
+    return (composition, videoComposition, compositionTrack)
   }
 
   /// Exports the composed timeline to `outputURL`, cleaning up partial output on failure.
   private func exportComposition(
     _ composition: AVMutableComposition,
-    videoComposition: AVMutableVideoComposition
+    videoComposition: AVMutableVideoComposition,
+    compositionTrack: AVAssetTrack,
+    securityScopedAccess: SecurityScopedAccess
   ) async throws {
-    if FileManager.default.fileExists(atPath: outputURL.path) {
-      try FileManager.default.removeItem(at: outputURL)
-    }
-    try FileManager.default.createDirectory(
-      at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-
-    let renderSize = videoComposition.renderSize
-    print(
-      "  Post-process render size: \(Int(renderSize.width))x\(Int(renderSize.height))")
-    print("  Post-process target bitrate: \(targetBitrate) bps")
-
-    do {
-      try await exportWithBitrate(asset: composition, videoComposition: videoComposition)
-    } catch {
+    try await withSecurityScopedResourceAccess(
+      securityScopedAccess,
+      urls: [outputURL, outputURL.deletingLastPathComponent()]
+    ) {
       if FileManager.default.fileExists(atPath: outputURL.path) {
-        try? FileManager.default.removeItem(at: outputURL)
+        try FileManager.default.removeItem(at: outputURL)
       }
-      throw error
+      try FileManager.default.createDirectory(
+        at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+      let renderSize = videoComposition.renderSize
+      print(
+        "  Post-process render size: \(Int(renderSize.width))x\(Int(renderSize.height))")
+      print("  Post-process target bitrate: \(targetBitrate) bps")
+
+      do {
+        try await exportWithBitrate(
+          asset: composition,
+          videoTrack: compositionTrack,
+          videoComposition: videoComposition
+        )
+      } catch {
+        if FileManager.default.fileExists(atPath: outputURL.path) {
+          try? FileManager.default.removeItem(at: outputURL)
+        }
+        throw error
+      }
     }
   }
 
   /// Re-encodes the composition with an explicit target bitrate using reader/writer APIs.
   private func exportWithBitrate(
     asset: AVAsset,
+    videoTrack: AVAssetTrack,
     videoComposition: AVMutableVideoComposition
   ) async throws {
-    guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
-      throw PostProcessorError.noVideoTrack
-    }
-
     let (reader, readerOutput) = try setupReader(
       asset: asset,
       videoTrack: videoTrack,
@@ -303,46 +311,58 @@ struct PostProcessor {
   }
 
   /// Extracts a JPEG poster from the midpoint of the processed video.
-  private func extractPoster(from videoURL: URL, to posterURL: URL) async throws {
-    let asset = AVURLAsset(url: videoURL)
-    let duration = try await asset.load(.duration)
-    let posterTime = CMTimeMultiplyByFloat64(duration, multiplier: 0.5)
+  private func extractPoster(
+    from videoURL: URL,
+    to posterURL: URL,
+    securityScopedAccess: SecurityScopedAccess
+  ) async throws {
+    try await withSecurityScopedResourceAccess(
+      securityScopedAccess,
+      urls: [videoURL, videoURL.deletingLastPathComponent(), posterURL, posterURL.deletingLastPathComponent()]
+    ) {
+      try await Self.exportCoordinator.withFileLoad {
+        let asset = AVURLAsset(url: videoURL)
+        let duration = try await asset.load(.duration)
+        let posterTime = CMTimeMultiplyByFloat64(duration, multiplier: 0.5)
 
-    let generator = AVAssetImageGenerator(asset: asset)
-    generator.appliesPreferredTrackTransform = true
-    generator.maximumSize = CGSize(width: targetWidth * 2, height: 0)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: targetWidth * 2, height: 0)
 
-    let (cgImage, _) = try await generator.image(at: posterTime)
-    let nsImage = NSImage(
-      cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        let (cgImage, _) = try await generator.image(at: posterTime)
+        let nsImage = NSImage(
+          cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
 
-    guard let tiffData = nsImage.tiffRepresentation,
-      let bitmap = NSBitmapImageRep(data: tiffData),
-      let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85])
-    else {
-      throw PostProcessorError.posterExtractionFailed
+        guard let tiffData = nsImage.tiffRepresentation,
+          let bitmap = NSBitmapImageRep(data: tiffData),
+          let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.85])
+        else {
+          throw PostProcessorError.posterExtractionFailed
+        }
+
+        try jpegData.write(to: posterURL)
+        print("  Poster frame: \(posterURL.path)")
+      }
     }
-
-    try jpegData.write(to: posterURL)
-    print("  Poster frame: \(posterURL.path)")
   }
 }
 
 enum PostProcessorError: Error, CustomStringConvertible {
   case noVideoTrack
   case compositionFailed
-  case exportSessionFailed
   case exportFailed
   case exportInProgress
+  case fileLoadBlockedDuringExport
   case posterExtractionFailed
 
   var description: String {
     switch self {
     case .noVideoTrack: return "No video track found in recording."
     case .compositionFailed: return "Failed to create composition track."
-    case .exportSessionFailed: return "Failed to create export session."
     case .exportFailed: return "Export session failed."
     case .exportInProgress: return "Another export is already in progress."
+    case .fileLoadBlockedDuringExport:
+      return "File loading is blocked while an export is active."
     case .posterExtractionFailed: return "Failed to extract poster frame."
     }
   }
@@ -351,18 +371,27 @@ enum PostProcessorError: Error, CustomStringConvertible {
 /// Coordinates post-processing so callers cannot load/export files concurrently.
 private actor ExportCoordinator {
   private var activeExports = 0
+  private var activeFileLoads = 0
 
-  func begin() throws {
+  func withExport<T>(_ operation: () async throws -> T) async throws -> T {
     guard activeExports == 0 else {
       throw PostProcessorError.exportInProgress
     }
+    guard activeFileLoads == 0 else {
+      throw PostProcessorError.fileLoadBlockedDuringExport
+    }
     activeExports += 1
+    defer { activeExports -= 1 }
+    return try await operation()
   }
 
-  func end() {
-    if activeExports > 0 {
-      activeExports -= 1
+  func withFileLoad<T>(_ operation: () async throws -> T) async throws -> T {
+    guard activeExports == 0 else {
+      throw PostProcessorError.fileLoadBlockedDuringExport
     }
+    activeFileLoads += 1
+    defer { activeFileLoads -= 1 }
+    return try await operation()
   }
 }
 
@@ -390,12 +419,9 @@ private final class SecurityScopedAccess {
     }
   }
 
-  func releaseAll() {
-    let keys = Array(entries.keys)
-    for key in keys {
-      while let entry = entries[key], entry.refCount > 0 {
-        release(key: key)
-      }
+  func release(urls: [URL]) {
+    for url in urls {
+      release(key: url.standardizedFileURL.path)
     }
   }
 

@@ -137,6 +137,29 @@ struct PostProcessor {
       throw PostProcessorError.noVideoTrack
     }
 
+    let (reader, readerOutput) = try setupReader(
+      asset: asset,
+      videoTrack: videoTrack,
+      videoComposition: videoComposition
+    )
+    let (writer, writerInput) = try setupWriter(renderSize: videoComposition.renderSize)
+
+    try startPipeline(reader: reader, writer: writer)
+    try await pumpVideoSamples(
+      reader: reader,
+      readerOutput: readerOutput,
+      writer: writer,
+      writerInput: writerInput
+    )
+    try validateReaderCompletion(reader)
+    try await finishWriter(writer: writer, writerInput: writerInput)
+  }
+
+  private func setupReader(
+    asset: AVAsset,
+    videoTrack: AVAssetTrack,
+    videoComposition: AVMutableVideoComposition
+  ) throws -> (AVAssetReader, AVAssetReaderVideoCompositionOutput) {
     let reader = try AVAssetReader(asset: asset)
     let readerOutput = AVAssetReaderVideoCompositionOutput(
       videoTracks: [videoTrack],
@@ -147,9 +170,13 @@ struct PostProcessor {
       throw PostProcessorError.exportFailed
     }
     reader.add(readerOutput)
+    return (reader, readerOutput)
+  }
 
+  private func setupWriter(
+    renderSize: CGSize
+  ) throws -> (AVAssetWriter, AVAssetWriterInput) {
     let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
-    let renderSize = videoComposition.renderSize
     let width = Int(renderSize.width)
     let height = Int(renderSize.height)
     let videoSettings: [String: Any] = [
@@ -158,8 +185,8 @@ struct PostProcessor {
       AVVideoHeightKey: height,
       AVVideoCompressionPropertiesKey: [
         AVVideoAverageBitRateKey: targetBitrate,
-        AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-      ],
+        AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel
+      ]
     ]
     let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
     writerInput.expectsMediaDataInRealTime = false
@@ -167,7 +194,10 @@ struct PostProcessor {
       throw PostProcessorError.exportFailed
     }
     writer.add(writerInput)
+    return (writer, writerInput)
+  }
 
+  private func startPipeline(reader: AVAssetReader, writer: AVAssetWriter) throws {
     guard reader.startReading() else {
       throw reader.error ?? PostProcessorError.exportFailed
     }
@@ -175,28 +205,38 @@ struct PostProcessor {
       throw writer.error ?? PostProcessorError.exportFailed
     }
     writer.startSession(atSourceTime: .zero)
+  }
 
+  private func pumpVideoSamples(
+    reader: AVAssetReader,
+    readerOutput: AVAssetReaderVideoCompositionOutput,
+    writer: AVAssetWriter,
+    writerInput: AVAssetWriterInput
+  ) async throws {
     while reader.status == .reading {
       if writerInput.isReadyForMoreMediaData {
         if let sampleBuffer = readerOutput.copyNextSampleBuffer() {
           if !writerInput.append(sampleBuffer) {
             throw writer.error ?? PostProcessorError.exportFailed
           }
-        } else {
-          break
+          continue
         }
-      } else {
-        try await Task.sleep(nanoseconds: 1_000_000)  // 1ms backoff while the writer catches up.
+        break
       }
+      try await Task.sleep(nanoseconds: 1_000_000)  // 1ms backoff while the writer catches up.
     }
+  }
 
+  private func validateReaderCompletion(_ reader: AVAssetReader) throws {
     if reader.status == .failed {
       throw reader.error ?? PostProcessorError.exportFailed
     }
     if reader.status == .cancelled {
       throw PostProcessorError.exportFailed
     }
+  }
 
+  private func finishWriter(writer: AVAssetWriter, writerInput: AVAssetWriterInput) async throws {
     writerInput.markAsFinished()
     await writer.finishWriting()
     if writer.status != .completed {

@@ -132,7 +132,12 @@ private func parseRecordArgs(_ args: [String]) throws -> RecordConfig {
     case "--width":
       outputWidth = Int(value) ?? 1920
     case "--bitrate":
-      targetBitrate = Int(value) ?? 5_000_000
+      guard let parsedBitrate = Int(value) else {
+        print("Error: --bitrate value '\(value)' is not a valid integer.")
+        DemoRecorderCLI.printUsage()
+        exit(1)
+      }
+      targetBitrate = parsedBitrate
     case "--fps":
       fps = Int(value) ?? 30
     default:

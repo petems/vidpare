@@ -129,6 +129,8 @@ demo-record: build ## Record a fresh demo MP4 (requires Screen Recording + Acces
 		{ echo "Error: Source video not found at $(DEMO_SRC_VIDEO)." >&2; \
 		  echo "Place your demo source video at that path." >&2; \
 		  exit 1; }
+	@echo "$(DEMO_BITRATE)" | grep -Eq '^[1-9][0-9]*$$' || \
+		{ echo "Error: DEMO_BITRATE must be a positive integer." >&2; exit 1; }
 	VIDPARE_BINARY="$(DEBUG_BIN)" swift run DemoRecorder record \
 		--source "$(DEMO_SRC_VIDEO)" \
 		--output "$(DEMO_OUTPUT)" \

@@ -22,7 +22,7 @@ struct DemoScenario {
       findElement(withIdentifier: "vidpare.toolbar.export", in: window) != nil
     }
     guard videoLoaded else {
-      dumpTree(element: window, label: "window-video-not-loaded")
+      axDumpTree(element: window, label: "window-video-not-loaded")
       throw ScenarioError.videoDidNotLoad
     }
     sleep(for: 1.5)
@@ -57,9 +57,9 @@ struct DemoScenario {
     sleep(for: 0.5)
 
     // Play through part of the trim region (~4s to ~6s = 2s of playback)
-    moveAndClick(playButton)
+    axMoveAndClick(playButton)
     sleep(for: 2.0)
-    moveAndClick(playButton)
+    axMoveAndClick(playButton)
     sleep(for: 0.5)
   }
 
@@ -75,8 +75,8 @@ struct DemoScenario {
       y: timelinePos.y + timelineSize.height / 2.0
     )
     let current = CGEvent(source: nil)?.location ?? target
-    smoothMoveCursor(from: current, to: target, duration: 0.3)
-    postMouseClick(at: target)
+    axSmoothMoveCursor(from: current, to: target, duration: 0.3)
+    axPostMouseClick(at: target)
   }
 
   // MARK: - Phase 4: Trim Points
@@ -85,10 +85,16 @@ struct DemoScenario {
     guard let timeline = findElement(withIdentifier: "vidpare.timeline", in: window) else {
       throw ScenarioError.elementNotFound("vidpare.timeline")
     }
-    guard let startHandle = findElement(withIdentifier: "vidpare.timeline.startHandle", in: window) else {
+    guard
+      let startHandle = findElement(withIdentifier: "vidpare.timeline.startHandle", in: window)
+        ?? findElement(withIdentifier: "vidpare.trimHandle.start", in: window)
+    else {
       throw ScenarioError.elementNotFound("vidpare.timeline.startHandle")
     }
-    guard let endHandle = findElement(withIdentifier: "vidpare.timeline.endHandle", in: window) else {
+    guard
+      let endHandle = findElement(withIdentifier: "vidpare.timeline.endHandle", in: window)
+        ?? findElement(withIdentifier: "vidpare.trimHandle.end", in: window)
+    else {
       throw ScenarioError.elementNotFound("vidpare.timeline.endHandle")
     }
 
@@ -127,31 +133,9 @@ struct DemoScenario {
       y: timelinePos.y + timelineSize.height / 2.0
     )
 
-    // Smoothly move cursor to the handle center
     let current = CGEvent(source: nil)?.location ?? startPoint
-    smoothMoveCursor(from: current, to: startPoint, duration: 0.3)
-
-    // Mouse down on the handle
-    let mouseDown = CGEvent(
-      mouseEventSource: Self.eventSource,
-      mouseType: .leftMouseDown,
-      mouseCursorPosition: startPoint,
-      mouseButton: .left
-    )
-    mouseDown?.post(tap: .cghidEventTap)
-    Thread.sleep(forTimeInterval: 0.05)
-
-    // Smoothly drag to target position
-    smoothDrag(from: startPoint, to: endPoint, duration: duration)
-
-    // Mouse up at target
-    let mouseUp = CGEvent(
-      mouseEventSource: Self.eventSource,
-      mouseType: .leftMouseUp,
-      mouseCursorPosition: endPoint,
-      mouseButton: .left
-    )
-    mouseUp?.post(tap: .cghidEventTap)
+    axSmoothMoveCursor(from: current, to: startPoint, duration: 0.3)
+    axDrag(from: startPoint, to: endPoint, duration: duration)
   }
 
   // MARK: - Phase 5: Export
@@ -163,7 +147,7 @@ struct DemoScenario {
     else {
       throw ScenarioError.elementNotFound("vidpare.toolbar.export")
     }
-    moveAndClick(exportToolbar)
+    axMoveAndClick(exportToolbar)
 
     let exportSheetAppeared = waitFor(timeout: 5.0) {
       findElement(withIdentifier: "vidpare.export.exportButton", in: window) != nil
@@ -193,7 +177,7 @@ struct DemoScenario {
       throw ScenarioError.elementNotFound("export button (still disabled after timeout)")
     }
     sleep(for: 0.5)
-    moveAndClick(exportButton)
+    axMoveAndClick(exportButton)
   }
 
   private func acceptSavePanel(app: AXUIElement, window: AXUIElement) throws {
@@ -218,7 +202,7 @@ struct DemoScenario {
 
     let saveButtonFound = clickSavePanelButton(app: app, titled: "Save")
     if !saveButtonFound {
-      sendKeyPress(virtualKey: 0x24)
+      axSendKeyPress(virtualKey: 0x24)
     }
     sleep(for: 1.0)
 
@@ -233,7 +217,7 @@ struct DemoScenario {
     for win in axWindows(of: app) {
       if let replaceBtn = findButton(titled: "Replace", in: win) {
         sleep(for: 0.3)
-        moveAndClick(replaceBtn)
+        axMoveAndClick(replaceBtn)
         break
       }
     }
@@ -252,7 +236,7 @@ struct DemoScenario {
 
     for win in axWindows(of: app) {
       if let doneBtn = findElement(withIdentifier: "vidpare.export.doneButton", in: win) {
-        moveAndClick(doneBtn)
+        axMoveAndClick(doneBtn)
         break
       }
     }
@@ -266,129 +250,15 @@ struct DemoScenario {
   private func clickSavePanelButton(app: AXUIElement, titled title: String) -> Bool {
     for win in axWindows(of: app) {
       if let btn = findButton(titled: title, in: win) {
-        moveAndClick(btn)
+        axMoveAndClick(btn)
         return true
       }
     }
     return false
   }
 
-  // MARK: - Helpers
-
-  /// Event source that suppresses real user mouse input during programmatic moves.
-  private static let eventSource: CGEventSource? = {
-    let source = CGEventSource(stateID: .hidSystemState)
-    source?.localEventsSuppressionInterval = 0.5
-    return source
-  }()
-
-  private func smoothMoveCursor(from start: CGPoint, to end: CGPoint, duration: TimeInterval) {
-    let steps = max(Int(duration * 60), 10)
-    let stepDelay = duration / Double(steps)
-
-    for i in 1...steps {
-      let progress = Double(i) / Double(steps)
-      let ease = progress * progress * (3.0 - 2.0 * progress)
-      let x = start.x + CGFloat(ease) * (end.x - start.x)
-      let y = start.y + CGFloat(ease) * (end.y - start.y)
-
-      let move = CGEvent(
-        mouseEventSource: Self.eventSource,
-        mouseType: .mouseMoved,
-        mouseCursorPosition: CGPoint(x: x, y: y),
-        mouseButton: .left
-      )
-      move?.post(tap: .cghidEventTap)
-      Thread.sleep(forTimeInterval: stepDelay)
-    }
-  }
-
-  private func smoothDrag(from start: CGPoint, to end: CGPoint, duration: TimeInterval) {
-    let steps = max(Int(duration * 60), 10)
-    let stepDelay = duration / Double(steps)
-
-    for i in 1...steps {
-      let progress = Double(i) / Double(steps)
-      let ease = progress * progress * (3.0 - 2.0 * progress)
-      let x = start.x + CGFloat(ease) * (end.x - start.x)
-      let y = start.y + CGFloat(ease) * (end.y - start.y)
-
-      let drag = CGEvent(
-        mouseEventSource: Self.eventSource,
-        mouseType: .leftMouseDragged,
-        mouseCursorPosition: CGPoint(x: x, y: y),
-        mouseButton: .left
-      )
-      drag?.post(tap: .cghidEventTap)
-      Thread.sleep(forTimeInterval: stepDelay)
-    }
-  }
-
-  /// Smoothly move the cursor to an AX element's center and click it.
-  private func moveAndClick(_ element: AXUIElement, duration: TimeInterval = 0.3) {
-    guard let position = axPosition(of: element),
-      let size = axSize(of: element)
-    else {
-      // Fall back to AX press if we can't get the frame
-      pressButton(element)
-      return
-    }
-    let center = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2)
-    let start = CGEvent(source: nil)?.location ?? center
-    smoothMoveCursor(from: start, to: center, duration: duration)
-    postMouseClick(at: center)
-  }
-
-  private func postMouseClick(at point: CGPoint) {
-    let mouseDown = CGEvent(
-      mouseEventSource: Self.eventSource,
-      mouseType: .leftMouseDown,
-      mouseCursorPosition: point,
-      mouseButton: .left
-    )
-    mouseDown?.post(tap: .cghidEventTap)
-
-    let mouseUp = CGEvent(
-      mouseEventSource: Self.eventSource,
-      mouseType: .leftMouseUp,
-      mouseCursorPosition: point,
-      mouseButton: .left
-    )
-    mouseUp?.post(tap: .cghidEventTap)
-  }
-
-  private func sendKeyPress(virtualKey: CGKeyCode, flags: CGEventFlags = []) {
-    let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: virtualKey, keyDown: true)
-    if !flags.isEmpty { keyDown?.flags = flags }
-    keyDown?.post(tap: .cghidEventTap)
-    let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: virtualKey, keyDown: false)
-    if !flags.isEmpty { keyUp?.flags = flags }
-    keyUp?.post(tap: .cghidEventTap)
-  }
-
   private func sleep(for seconds: TimeInterval) {
     Thread.sleep(forTimeInterval: seconds)
-  }
-
-  private func dumpTree(element: AXUIElement, label: String, depth: Int = 0) {
-    let indent = String(repeating: "  ", count: depth)
-    let role = axRole(of: element) ?? "?"
-    let id = axIdentifier(of: element) ?? ""
-    let title = axTitle(of: element) ?? ""
-    let desc = axDescription(of: element) ?? ""
-    var parts = ["\(indent)[\(role)]"]
-    if !id.isEmpty { parts.append("id=\"\(id)\"") }
-    if !title.isEmpty { parts.append("title=\"\(title)\"") }
-    if !desc.isEmpty { parts.append("desc=\"\(desc)\"") }
-    if depth == 0 {
-      FileHandle.standardError.write(Data("  AX tree dump (\(label)):\n".utf8))
-    }
-    FileHandle.standardError.write(Data((parts.joined(separator: " ") + "\n").utf8))
-    if depth < 12 {
-      for child in axChildren(of: element) {
-        dumpTree(element: child, label: label, depth: depth + 1)
-      }
-    }
   }
 }
 

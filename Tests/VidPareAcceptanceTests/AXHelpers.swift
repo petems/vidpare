@@ -20,32 +20,27 @@ func axWindows(of app: AXUIElement) -> [AXUIElement] {
   return array
 }
 
-func axTitle(of element: AXUIElement) -> String? {
+private func axStringAttribute(_ attribute: CFString, of element: AXUIElement) -> String? {
   var value: CFTypeRef?
-  let result = AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &value)
+  let result = AXUIElementCopyAttributeValue(element, attribute, &value)
   guard result == .success else { return nil }
   return value as? String
+}
+
+func axTitle(of element: AXUIElement) -> String? {
+  axStringAttribute(kAXTitleAttribute as CFString, of: element)
 }
 
 func axDescription(of element: AXUIElement) -> String? {
-  var value: CFTypeRef?
-  let result = AXUIElementCopyAttributeValue(element, kAXDescriptionAttribute as CFString, &value)
-  guard result == .success else { return nil }
-  return value as? String
+  axStringAttribute(kAXDescriptionAttribute as CFString, of: element)
 }
 
 func axRole(of element: AXUIElement) -> String? {
-  var value: CFTypeRef?
-  let result = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &value)
-  guard result == .success else { return nil }
-  return value as? String
+  axStringAttribute(kAXRoleAttribute as CFString, of: element)
 }
 
 func axIdentifier(of element: AXUIElement) -> String? {
-  var value: CFTypeRef?
-  let result = AXUIElementCopyAttributeValue(element, kAXIdentifierAttribute as CFString, &value)
-  guard result == .success else { return nil }
-  return value as? String
+  axStringAttribute(kAXIdentifierAttribute as CFString, of: element)
 }
 
 func axChildren(of element: AXUIElement) -> [AXUIElement] {

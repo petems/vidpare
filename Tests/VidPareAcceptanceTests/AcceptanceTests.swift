@@ -52,18 +52,13 @@ final class AcceptanceTests: XCTestCase {
 
     let success = waitFor {
       guard let window = axWindows(of: app).first else { return false }
-      // Prefer searching within the drop target container
-      let searchRoot = findElement(withIdentifier: "vidpare.dropTarget", in: window) ?? window
-      // Search by accessibility identifier
-      if let btn = findElement(withIdentifier: "vidpare.openFile", in: searchRoot) {
-        openButton = btn
-        return true
-      }
-      // Fallback: search by title
-      let buttons = findElements(withRole: kAXButtonRole as String, in: searchRoot)
+      // SwiftUI propagates the parent's accessibilityIdentifier to all children,
+      // so search the entire window for a button whose description contains "Open File".
+      let buttons = findElements(withRole: kAXButtonRole as String, in: window)
       openButton = buttons.first { btn in
         let title = axTitle(of: btn) ?? ""
-        return title.contains("Open File") || title.contains("Open")
+        let desc = axDescription(of: btn) ?? ""
+        return title.contains("Open File") || desc.contains("Open File")
       }
       return openButton != nil
     }

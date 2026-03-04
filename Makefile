@@ -64,6 +64,10 @@ test-record-snapshots: ## Re-record all snapshot baselines
 
 .PHONY: test-acceptance
 test-acceptance: build ## Run acceptance tests (requires accessibility permissions)
+	@swift -e 'import ApplicationServices; exit(AXIsProcessTrusted() ? 0 : 1)' 2>/dev/null || \
+		{ echo "Error: Accessibility permissions not granted." >&2; \
+		  echo "Add your terminal to System Settings > Privacy & Security > Accessibility." >&2; \
+		  exit 1; }
 	VIDPARE_BINARY=$(DEBUG_BIN) swift test --filter VidPareAcceptanceTests $(V_FLAG)
 
 .PHONY: coverage

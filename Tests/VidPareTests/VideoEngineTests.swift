@@ -1,4 +1,5 @@
 import AVFoundation
+import SwiftUI
 import UniformTypeIdentifiers
 @testable import VidPare
 import XCTest
@@ -379,6 +380,20 @@ final class VideoEngineTests: XCTestCase {
 
         XCTAssertEqual(capabilities.supportedFormats(for: .high), [.mp4H264, .movH264])
         XCTAssertTrue(capabilities.supportedFormats(for: .passthrough).isEmpty)
+    }
+
+    // MARK: - Export filename generation
+
+    func testExportFileNameGeneration() {
+        let paths = ["/tmp/MyVideo.mp4", "/tmp/recording.mov", "/tmp/My Holiday Video.mp4", "/tmp/clip.m4v"]
+        let formats: [ExportFormat] = [.mp4H264, .movH264, .mp4H264, .mp4HEVC]
+        let expected = ["MyVideo_trimmed.mp4", "recording_trimmed.mov", "My Holiday Video_trimmed.mp4", "clip_trimmed.mp4"]
+
+        for i in paths.indices {
+            let url = URL(fileURLWithPath: paths[i])
+            let name = ExportSheet.exportFileName(sourceURL: url, format: formats[i])
+            XCTAssertEqual(name, expected[i], "Failed for input: '\(paths[i])'")
+        }
     }
 
     // MARK: - Capability preflight

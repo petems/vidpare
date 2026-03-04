@@ -103,6 +103,14 @@ jobs:
       - name: Run unit tests
         run: make test VERBOSE=1 COVERAGE=1
 
+      - name: Upload snapshot diffs on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: snapshot-diffs-macos${{ matrix.macos }}
+          path: Tests/VidPareTests/__Snapshots__/
+          retention-days: 7
+
       - name: Generate code coverage report
         run: |
           BUILD_PATH=$(swift build --show-bin-path)
@@ -158,3 +166,4 @@ jobs:
           name: VidPare-release-macos${{ matrix.macos }}
           path: .build/release/VidPare
           retention-days: 7
+

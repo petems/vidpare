@@ -7,6 +7,12 @@ let package = Package(
     platforms: [
         .macOS(.v14)
     ],
+    dependencies: [
+        .package(
+            url: "https://github.com/pointfreeco/swift-snapshot-testing",
+            from: "1.17.0"
+        )
+    ],
     targets: [
         .executableTarget(
             name: "VidPare",
@@ -14,11 +20,20 @@ let package = Package(
         ),
         .testTarget(
             name: "VidPareTests",
-            dependencies: ["VidPare"],
+            dependencies: [
+                "VidPare",
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+            ],
             path: "Tests/VidPareTests",
+            exclude: ["__Snapshots__"],
             resources: [
                 .process("Fixtures")
             ]
-        )
+        ),
+        .testTarget(
+            name: "VidPareAcceptanceTests",
+            dependencies: [],
+            path: "Tests/VidPareAcceptanceTests"
+        ),
     ]
 )

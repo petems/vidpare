@@ -68,6 +68,7 @@ struct ContentView: View {
                 }
                 .keyboardShortcut("o")
                 .disabled(videoEngine.isExporting)
+                .accessibilityIdentifier(AccessibilityID.toolbarOpen)
 
                 if document != nil {
                     Button {
@@ -76,6 +77,7 @@ struct ContentView: View {
                         Label("Export", systemImage: "square.and.arrow.up")
                     }
                     .keyboardShortcut("e")
+                    .accessibilityIdentifier(AccessibilityID.toolbarExport)
                 }
             }
         }
@@ -105,12 +107,14 @@ struct ContentView: View {
                 showFileImporter = true
             }
             .keyboardShortcut("o")
+            .accessibilityIdentifier(AccessibilityID.openFileButton)
             Text("Supports MP4, MOV, M4V")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black.opacity(0.02))
+        .accessibilityIdentifier(AccessibilityID.dropTarget)
     }
 
     private func videoEditorView(document: VideoDocument) -> some View {

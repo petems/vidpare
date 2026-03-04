@@ -41,6 +41,7 @@ struct TimelineView: View {
             }
         }
         .frame(height: 56)
+        .accessibilityIdentifier(AccessibilityID.timeline)
     }
 
     @ViewBuilder

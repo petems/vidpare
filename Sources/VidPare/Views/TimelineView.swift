@@ -40,9 +40,10 @@ struct TimelineView: View {
                 let time = CMTime(seconds: fraction * totalSeconds, preferredTimescale: 600)
                 onSeek(time)
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(AccessibilityID.timeline)
         }
         .frame(height: 56)
-        .accessibilityIdentifier(AccessibilityID.timeline)
     }
 
     @ViewBuilder
@@ -138,6 +139,8 @@ struct TimelineView: View {
                     }
             )
             .offset(x: Self.trimHandleOffset(isStart: isStart, x: x, width: width))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(isStart ? "Start trim handle" : "End trim handle")
             .accessibilityIdentifier(isStart ? AccessibilityID.trimHandleStart : AccessibilityID.trimHandleEnd)
             .cursor(.resizeLeftRight)
     }

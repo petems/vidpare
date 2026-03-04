@@ -24,6 +24,7 @@ final class AppLauncher {
     let app = axApp(for: pid)
     let ready = waitFor(timeout: 10.0) { !axWindows(of: app).isEmpty }
     if !ready {
+      terminate()
       throw AppLauncherError.appDidNotLaunch
     }
     return pid

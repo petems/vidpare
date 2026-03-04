@@ -82,6 +82,14 @@ struct ContentView: View {
             }
         }
         .navigationTitle(windowTitle)
+        .onAppear {
+            if let path = ProcessInfo.processInfo.environment["VIDPARE_OPEN_FILE"] {
+                let url = URL(fileURLWithPath: path)
+                if FileManager.default.fileExists(atPath: url.path) {
+                    loadVideo(url: url)
+                }
+            }
+        }
         .onDisappear {
             removeTimeObserver()
             if let url = currentSecurityScopedURL {

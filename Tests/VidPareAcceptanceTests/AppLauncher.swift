@@ -9,7 +9,7 @@ final class AppLauncher {
       ?? ".build/debug/VidPare"
   }
 
-  func launch() throws -> pid_t {
+  func launch(openingFile filePath: String? = nil) throws -> pid_t {
     let url = URL(fileURLWithPath: binaryPath)
     guard FileManager.default.isExecutableFile(atPath: url.path) else {
       throw AppLauncherError.binaryNotFound(binaryPath)
@@ -17,6 +17,11 @@ final class AppLauncher {
 
     let proc = Process()
     proc.executableURL = url
+    if let filePath {
+      var env = ProcessInfo.processInfo.environment
+      env["VIDPARE_OPEN_FILE"] = filePath
+      proc.environment = env
+    }
     try proc.run()
     self.process = proc
 

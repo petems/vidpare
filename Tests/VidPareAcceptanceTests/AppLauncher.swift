@@ -32,7 +32,13 @@ final class AppLauncher {
   func terminate() {
     guard let process, process.isRunning else { return }
     process.terminate()
-    process.waitUntilExit()
+
+    let exited = waitFor(timeout: 5.0, interval: 0.25) {
+      !process.isRunning
+    }
+    if !exited {
+      process.interrupt()
+    }
     self.process = nil
   }
 }

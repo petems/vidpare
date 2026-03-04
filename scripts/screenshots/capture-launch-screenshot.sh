@@ -20,18 +20,22 @@ cleanup() {
     kill "$APP_PID" >/dev/null 2>&1 || true
     wait "$APP_PID" 2>/dev/null || true
   fi
-  pkill -f "\\.build/debug/VidPare" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-sleep 2
-
-BOUNDS="$(
-  APP_PID="$APP_PID" swift -e '
+BOUNDS=""
+for _ in {1..10}; do
+  BOUNDS="$(
+    APP_PID="$APP_PID" swift -e '
 import Foundation
 import CoreGraphics
 
-let pid = Int32(ProcessInfo.processInfo.environment["APP_PID"]!)!
+guard let pidString = ProcessInfo.processInfo.environment["APP_PID"],
+  let pid = Int32(pidString)
+else {
+  exit(3)
+}
+
 let opts: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
 
 guard let windows = CGWindowListCopyWindowInfo(opts, kCGNullWindowID) as? [[String: Any]] else {
@@ -62,7 +66,19 @@ for window in windows {
 
 exit(2)
 '
-)"
+  )" || true
+
+  if [[ -n "$BOUNDS" ]]; then
+    break
+  fi
+
+  if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+    echo "Error: VidPare process exited before window bounds were available." >&2
+    exit 1
+  fi
+
+  sleep 0.5
+done
 
 if [[ -z "$BOUNDS" ]]; then
   echo "Error: Could not resolve VidPare window bounds for screenshot capture." >&2

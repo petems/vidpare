@@ -141,7 +141,7 @@ demo: demo-record ## Record demo and verify output exists
 # ── Screenshots ──────────────────────────────────────────────────────
 
 .PHONY: screenshots
-screenshots: ## Capture app snapshots and refresh docs screenshots
+screenshots: build ## Capture app snapshots and refresh docs screenshots
 	./scripts/screenshots/capture-launch-screenshot.sh "$(SCREENSHOT_DIR)/main-content-view.png"
 	SNAPSHOT_TESTING_RECORD=1 swift test --filter SnapshotTests $(V_FLAG)
 	@mkdir -p "$(SCREENSHOT_DIR)"

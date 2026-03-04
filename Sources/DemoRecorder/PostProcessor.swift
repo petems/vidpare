@@ -230,7 +230,7 @@ struct PostProcessor {
         throw writer.error ?? PostProcessorError.exportFailed
       }
       if writer.status == .cancelled {
-        throw PostProcessorError.exportFailed
+        throw writer.error ?? PostProcessorError.exportFailed
       }
 
       if writerInput.isReadyForMoreMediaData {

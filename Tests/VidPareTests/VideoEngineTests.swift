@@ -174,8 +174,11 @@ final class VideoEngineTests: XCTestCase {
         XCTAssertEqual(ExportFormat.movH264.fileExtension, "mov")
         XCTAssertEqual(ExportFormat.mp4HEVC.fileType, .mp4)
         XCTAssertEqual(ExportFormat.mp4HEVC.fileExtension, "mp4")
+        XCTAssertEqual(ExportFormat.gif.fileType, .gif)
+        XCTAssertEqual(ExportFormat.gif.fileExtension, "gif")
         XCTAssertTrue(ExportFormat.mp4HEVC.isHEVC)
         XCTAssertFalse(ExportFormat.mp4H264.isHEVC)
+        XCTAssertFalse(ExportFormat.gif.isHEVC)
     }
 
     func testQualityPresetValues() {
@@ -202,6 +205,7 @@ final class VideoEngineTests: XCTestCase {
         XCTAssertEqual(ExportFormat.mp4H264.contentType, .mpeg4Movie)
         XCTAssertEqual(ExportFormat.mp4HEVC.contentType, .mpeg4Movie)
         XCTAssertEqual(ExportFormat.movH264.contentType, .quickTimeMovie)
+        XCTAssertEqual(ExportFormat.gif.contentType, .gif)
     }
 
     func testTrimStateInvalidOrderDuration() {
@@ -325,6 +329,28 @@ final class VideoEngineTests: XCTestCase {
         XCTAssertNotNil(resolved.adjustmentReason)
     }
 
+    func testCapabilitiesResolve_gifPassthroughPromotesToReencode() {
+        let capabilities = ExportCapabilities(
+            sourceContainerFormat: .mp4H264,
+            sourceIsHEVC: false,
+            supportMatrix: supportMatrix(
+                overrides: [
+                    SupportOverride(quality: .high, format: .gif, support: .supported),
+                    SupportOverride(quality: .passthrough, format: .mp4H264, support: .supported)
+                ]
+            )
+        )
+
+        let resolved = capabilities.resolvedSelection(
+            requestedFormat: .gif,
+            requestedQuality: .passthrough
+        )
+
+        XCTAssertEqual(resolved.format, .gif)
+        XCTAssertEqual(resolved.quality, .high)
+        XCTAssertNotNil(resolved.adjustmentReason)
+    }
+
     func testCapabilitiesResolve_fallsBackToSupportedFormatAtRequestedQuality() {
         let capabilities = ExportCapabilities(
             sourceContainerFormat: .mp4H264,
@@ -385,9 +411,9 @@ final class VideoEngineTests: XCTestCase {
     // MARK: - Export filename generation
 
     func testExportFileNameGeneration() {
-        let paths = ["/tmp/MyVideo.mp4", "/tmp/recording.mov", "/tmp/My Holiday Video.mp4", "/tmp/clip.m4v"]
-        let formats: [ExportFormat] = [.mp4H264, .movH264, .mp4H264, .mp4HEVC]
-        let expected = ["MyVideo_trimmed.mp4", "recording_trimmed.mov", "My Holiday Video_trimmed.mp4", "clip_trimmed.mp4"]
+        let paths = ["/tmp/MyVideo.mp4", "/tmp/recording.mov", "/tmp/My Holiday Video.mp4", "/tmp/clip.m4v", "/tmp/screen-capture.mov"]
+        let formats: [ExportFormat] = [.mp4H264, .movH264, .mp4H264, .mp4HEVC, .gif]
+        let expected = ["MyVideo_trimmed.mp4", "recording_trimmed.mov", "My Holiday Video_trimmed.mp4", "clip_trimmed.mp4", "screen-capture_trimmed.gif"]
 
         for i in paths.indices {
             let url = URL(fileURLWithPath: paths[i])
@@ -408,6 +434,7 @@ final class VideoEngineTests: XCTestCase {
 
         XCTAssertEqual(capabilities.sourceContainerFormat, .movH264)
         XCTAssertFalse(capabilities.support(for: .mp4H264, quality: .passthrough).isSupported)
+        XCTAssertFalse(capabilities.support(for: .gif, quality: .passthrough).isSupported)
     }
 }
 
@@ -500,6 +527,59 @@ final class VideoEngineExportLifecycleTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: outputURL.path))
         XCTAssertFalse(engine.isExporting, "isExporting should be reset after failure")
         XCTAssertEqual(engine.progress, 0, "progress should be reset after failure")
+    }
+
+    @MainActor
+    func testExportLifecycle_successGIFWithFixture() async throws {
+        let fixtureURL = try fixtureURL(named: "sample", ext: "mp4")
+        let asset = AVURLAsset(url: fixtureURL)
+        let trimRange = CMTimeRange(start: .zero, duration: CMTime(seconds: 1.0, preferredTimescale: 600))
+        let outputURL = uniqueTempURL(ext: "gif")
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        let engine = VideoEngine()
+        let result = try await engine.export(
+            asset: asset,
+            trimRange: trimRange,
+            format: .gif,
+            quality: .high,
+            outputURL: outputURL,
+            gifSettings: GIFExportSettings(frameRate: .fps8, scale: .small)
+        )
+
+        XCTAssertEqual(result.outputURL, outputURL)
+        XCTAssertGreaterThan(result.duration, 0)
+        XCTAssertGreaterThan(result.fileSize, 0)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
+        XCTAssertFalse(engine.isExporting)
+        XCTAssertEqual(engine.progress, 1.0)
+    }
+
+    @MainActor
+    func testExportLifecycle_gifDurationOverLimitThrows() async throws {
+        let fixtureURL = try fixtureURL(named: "sample", ext: "mp4")
+        let asset = AVURLAsset(url: fixtureURL)
+        let outputURL = uniqueTempURL(ext: "gif")
+        defer { try? FileManager.default.removeItem(at: outputURL) }
+
+        let engine = VideoEngine()
+        do {
+            _ = try await engine.export(
+                asset: asset,
+                trimRange: CMTimeRange(start: .zero, duration: CMTime(seconds: 16.0, preferredTimescale: 600)),
+                format: .gif,
+                quality: .high,
+                outputURL: outputURL
+            )
+            XCTFail("Expected GIF duration limit error")
+        } catch let error as ExportError {
+            switch error {
+            case .gifDurationLimitExceeded:
+                break
+            default:
+                XCTFail("Expected gifDurationLimitExceeded, got \(error)")
+            }
+        }
     }
 
     @MainActor

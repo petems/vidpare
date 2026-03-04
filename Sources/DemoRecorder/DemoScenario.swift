@@ -187,33 +187,65 @@ struct DemoScenario {
     }
     sleep(for: 0.5)
 
-    // Accept default filename
-    sendKeyPress(virtualKey: 0x24)  // Return
+    // Click the Save button in the save panel
+    let saveButtonFound = clickSavePanelButton(app: app, titled: "Save")
+    if !saveButtonFound {
+      // Fall back to Return key if we can't find the Save button
+      sendKeyPress(virtualKey: 0x24)
+    }
     sleep(for: 1.0)
 
     // Handle possible overwrite confirmation dialog ("Replace" button)
-    for win in axWindows(of: app) {
-      if let replaceBtn = findButton(titled: "Replace", in: win) {
-        moveAndClick(replaceBtn)
-        break
+    let replaceAppeared = waitFor(timeout: 2.0, interval: 0.25) {
+      axWindows(of: app).contains { findButton(titled: "Replace", in: $0) != nil }
+    }
+    if replaceAppeared {
+      for win in axWindows(of: app) {
+        if let replaceBtn = findButton(titled: "Replace", in: win) {
+          sleep(for: 0.3)
+          moveAndClick(replaceBtn)
+          break
+        }
       }
     }
 
-    // Wait for export to complete (export completion view appears)
+    // Wait for export to complete (completion view may appear in main window or sheet window)
     let exportCompleted = waitFor(timeout: 30.0, interval: 0.5) {
-      findElement(withIdentifier: "vidpare.export.completionView", in: window) != nil
+      for win in axWindows(of: app) {
+        if findElement(withIdentifier: "vidpare.export.completionView", in: win) != nil {
+          return true
+        }
+      }
+      return false
     }
 
     if exportCompleted {
       sleep(for: 2.0)
-      // Click Done to dismiss the completion view
-      if let doneBtn = findElement(withIdentifier: "vidpare.export.doneButton", in: window) {
-        moveAndClick(doneBtn)
+      // Click Done to dismiss the completion view (search all windows for sheet case)
+      for win in axWindows(of: app) {
+        if let doneBtn = findElement(withIdentifier: "vidpare.export.doneButton", in: win) {
+          moveAndClick(doneBtn)
+          break
+        }
       }
       sleep(for: 0.5)
     } else {
       sleep(for: 3.0)
     }
+  }
+
+  // MARK: - Save Panel
+
+  /// Find and click a button by title in the save panel (which may be a sheet or standalone window).
+  @discardableResult
+  private func clickSavePanelButton(app: AXUIElement, titled title: String) -> Bool {
+    for win in axWindows(of: app) {
+      if let btn = findButton(titled: title, in: win) {
+        moveAndClick(btn)
+        return true
+      }
+    }
+    return false
   }
 
   // MARK: - Helpers

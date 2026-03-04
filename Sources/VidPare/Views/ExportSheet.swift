@@ -297,9 +297,16 @@ struct ExportSheet: View {
     savePanel.nameFieldStringValue = exportFileName(for: resolved.format)
     savePanel.canCreateDirectories = true
 
-    savePanel.begin { response in
-      self.handleSavePanelResponse(
-        response, url: savePanel.url, format: resolved.format, quality: resolved.quality)
+    if let window = NSApp.keyWindow {
+      savePanel.beginSheetModal(for: window) { response in
+        self.handleSavePanelResponse(
+          response, url: savePanel.url, format: resolved.format, quality: resolved.quality)
+      }
+    } else {
+      savePanel.begin { response in
+        self.handleSavePanelResponse(
+          response, url: savePanel.url, format: resolved.format, quality: resolved.quality)
+      }
     }
   }
 

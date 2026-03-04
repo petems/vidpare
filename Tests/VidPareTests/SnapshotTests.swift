@@ -10,8 +10,8 @@ final class SnapshotTests: XCTestCase {
 
   // MARK: - ContentView
 
-  func testContentView_emptyState() throws {
-    try snapshotView(
+  func testContentView_emptyState() {
+    snapshotView(
       ContentView(),
       size: CGSize(width: 1024, height: 768)
     )
@@ -19,7 +19,7 @@ final class SnapshotTests: XCTestCase {
 
   // MARK: - PlayerControlsView
 
-  func testPlayerControls_paused() throws {
+  func testPlayerControls_paused() {
     let trimState = TrimState()
     trimState.startTime = .zero
     trimState.endTime = CMTime(seconds: 30, preferredTimescale: 600)
@@ -33,10 +33,10 @@ final class SnapshotTests: XCTestCase {
       onSetInPoint: {},
       onSetOutPoint: {}
     )
-    try snapshotView(view, size: CGSize(width: 900, height: 80))
+    snapshotView(view, size: CGSize(width: 900, height: 80))
   }
 
-  func testPlayerControls_playing() throws {
+  func testPlayerControls_playing() {
     let trimState = TrimState()
     trimState.startTime = .zero
     trimState.endTime = CMTime(seconds: 30, preferredTimescale: 600)
@@ -50,12 +50,12 @@ final class SnapshotTests: XCTestCase {
       onSetInPoint: {},
       onSetOutPoint: {}
     )
-    try snapshotView(view, size: CGSize(width: 900, height: 80))
+    snapshotView(view, size: CGSize(width: 900, height: 80))
   }
 
   // MARK: - TimelineView
 
-  func testTimelineView_noThumbnails() throws {
+  func testTimelineView_noThumbnails() {
     let trimState = TrimState()
     trimState.startTime = CMTime(seconds: 5, preferredTimescale: 600)
     trimState.endTime = CMTime(seconds: 25, preferredTimescale: 600)
@@ -67,10 +67,10 @@ final class SnapshotTests: XCTestCase {
       trimState: trimState,
       onSeek: { _ in }
     )
-    try snapshotView(view, size: CGSize(width: 900, height: 80))
+    snapshotView(view, size: CGSize(width: 900, height: 80))
   }
 
-  func testTimelineView_trimAtStart() throws {
+  func testTimelineView_trimAtStart() {
     let trimState = TrimState()
     trimState.startTime = .zero
     trimState.endTime = CMTime(seconds: 5, preferredTimescale: 600)
@@ -82,10 +82,10 @@ final class SnapshotTests: XCTestCase {
       trimState: trimState,
       onSeek: { _ in }
     )
-    try snapshotView(view, size: CGSize(width: 900, height: 80))
+    snapshotView(view, size: CGSize(width: 900, height: 80))
   }
 
-  func testTimelineView_fullRange() throws {
+  func testTimelineView_fullRange() {
     let trimState = TrimState()
     trimState.startTime = .zero
     trimState.endTime = CMTime(seconds: 30, preferredTimescale: 600)
@@ -97,7 +97,7 @@ final class SnapshotTests: XCTestCase {
       trimState: trimState,
       onSeek: { _ in }
     )
-    try snapshotView(view, size: CGSize(width: 900, height: 80))
+    snapshotView(view, size: CGSize(width: 900, height: 80))
   }
 
   // MARK: - ExportSheet
@@ -120,6 +120,6 @@ final class SnapshotTests: XCTestCase {
       videoEngine: VideoEngine(),
       onDismiss: {}
     )
-    try snapshotView(view, size: CGSize(width: 420, height: 540))
+    snapshotView(view, size: CGSize(width: 420, height: 540))
   }
 }

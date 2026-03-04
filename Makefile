@@ -47,8 +47,8 @@ format-check: ## Check formatting without modifying files
 # ── Test ─────────────────────────────────────────────────────────────
 
 .PHONY: test
-test: ## Run unit tests
-	swift test $(V_FLAG) $(COV_FLAG)
+test: ## Run unit and snapshot tests (excludes acceptance tests)
+	swift test --skip VidPareAcceptanceTests $(V_FLAG) $(COV_FLAG)
 
 .PHONY: test-verbose
 test-verbose: ## Run unit tests with verbose output

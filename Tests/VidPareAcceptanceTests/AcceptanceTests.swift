@@ -48,22 +48,28 @@ final class AcceptanceTests: XCTestCase {
 
   func testAppLaunches_showsDropTarget() {
     let app = axApp(for: pid)
-    var found = false
+    var dropTarget: AXUIElement?
+    var openButton: AXUIElement?
+
     let success = waitFor {
       guard let window = axWindows(of: app).first else { return false }
-      // Search by accessibility identifier (set in ContentView)
-      if findElement(withIdentifier: "vidpare.openFile", in: window) != nil {
-        found = true
+      dropTarget = findElement(withIdentifier: "vidpare.dropTarget", in: window)
+      guard let target = dropTarget else { return false }
+      // Search for Open File button within the drop target
+      if let btn = findElement(withIdentifier: "vidpare.openFile", in: target) {
+        openButton = btn
         return true
       }
-      // Fallback: search by title
-      let buttons = findElements(withRole: kAXButtonRole as String, in: window)
-      found = buttons.contains { btn in
+      // Fallback: search by title within drop target
+      let buttons = findElements(withRole: kAXButtonRole as String, in: target)
+      openButton = buttons.first { btn in
         let title = axTitle(of: btn) ?? ""
         return title.contains("Open File") || title.contains("Open")
       }
-      return found
+      return openButton != nil
     }
-    XCTAssertTrue(success, "Drop target should show Open File button on launch")
+
+    XCTAssertNotNil(dropTarget, "Drop target element should exist on launch")
+    XCTAssertTrue(success, "Drop target should contain an Open File button")
   }
 }

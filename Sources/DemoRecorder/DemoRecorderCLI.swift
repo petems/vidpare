@@ -118,13 +118,7 @@ private func parseRecordArgs(_ args: [String]) throws -> RecordConfig {
   var i = 0
   while i < args.count {
     let option = args[i]
-
-    guard i + 1 < args.count else {
-      print("Error: Missing value for option '\(option)'.")
-      DemoRecorderCLI.printUsage()
-      exit(1)
-    }
-    let value = args[i + 1]
+    let value = optionValue(args: args, index: i, option: option)
 
     switch option {
     case "--source":
@@ -134,53 +128,22 @@ private func parseRecordArgs(_ args: [String]) throws -> RecordConfig {
     case "--poster":
       posterPath = value
     case "--width":
-      guard let parsedWidth = Int(value) else {
-        print("Error: --width value '\(value)' is not a valid integer.")
-        DemoRecorderCLI.printUsage()
-        exit(1)
-      }
-      guard parsedWidth > 0 else {
-        print("Error: --width must be greater than 0.")
-        DemoRecorderCLI.printUsage()
-        exit(1)
-      }
-      outputWidth = parsedWidth
+      outputWidth = parsePositiveIntOption(value: value, option: "--width")
     case "--bitrate":
-      guard let parsedBitrate = Int(value) else {
-        print("Error: --bitrate value '\(value)' is not a valid integer.")
-        DemoRecorderCLI.printUsage()
-        exit(1)
-      }
-      targetBitrate = parsedBitrate
+      targetBitrate = parseIntOption(value: value, option: "--bitrate")
     case "--fps":
-      guard let parsedFPS = Int(value) else {
-        print("Error: --fps value '\(value)' is not a valid integer.")
-        DemoRecorderCLI.printUsage()
-        exit(1)
-      }
-      guard parsedFPS > 0 else {
-        print("Error: --fps must be greater than 0.")
-        DemoRecorderCLI.printUsage()
-        exit(1)
-      }
-      fps = parsedFPS
+      fps = parsePositiveIntOption(value: value, option: "--fps")
     default:
-      print("Unknown option: \(option)")
-      DemoRecorderCLI.printUsage()
-      exit(1)
+      failRecordArg("Unknown option: \(option)")
     }
     i += 2
   }
 
   guard let sourceVideoPath else {
-    print("Error: --source is required.")
-    DemoRecorderCLI.printUsage()
-    exit(1)
+    failRecordArg("--source is required.")
   }
   guard targetBitrate > 0 else {
-    print("Error: --bitrate must be greater than 0.")
-    DemoRecorderCLI.printUsage()
-    exit(1)
+    failRecordArg("--bitrate must be greater than 0.")
   }
 
   let cwd = FileManager.default.currentDirectoryPath
@@ -192,6 +155,38 @@ private func parseRecordArgs(_ args: [String]) throws -> RecordConfig {
     targetBitrate: targetBitrate,
     fps: fps
   )
+}
+
+/// Returns the value associated with a CLI option at `index` or exits with usage text.
+private func optionValue(args: [String], index: Int, option: String) -> String {
+  guard index + 1 < args.count else {
+    failRecordArg("Missing value for option '\(option)'.")
+  }
+  return args[index + 1]
+}
+
+/// Parses an integer argument value for a named CLI option.
+private func parseIntOption(value: String, option: String) -> Int {
+  guard let parsedValue = Int(value) else {
+    failRecordArg("\(option) value '\(value)' is not a valid integer.")
+  }
+  return parsedValue
+}
+
+/// Parses a strictly positive integer argument value for a named CLI option.
+private func parsePositiveIntOption(value: String, option: String) -> Int {
+  let parsedValue = parseIntOption(value: value, option: option)
+  guard parsedValue > 0 else {
+    failRecordArg("\(option) must be greater than 0.")
+  }
+  return parsedValue
+}
+
+/// Prints a parse error with usage text, then exits.
+private func failRecordArg(_ message: String) -> Never {
+  print("Error: \(message)")
+  DemoRecorderCLI.printUsage()
+  exit(1)
 }
 
 /// Resolves an input path against the current working directory.

@@ -42,6 +42,9 @@ dist/
 *.profraw
 *.profdata
 
+# Demo recording artifacts
+scripts/demo/*_trimmed*
+
 # Node / frontend
 node_modules/
 site/node_modules/

@@ -12,6 +12,9 @@ on:
       - 'site/**'
       - '.github/workflows/site-quality.yml'
 
+permissions:
+  contents: read
+
 jobs:
   site-quality:
     runs-on: ubuntu-latest
@@ -21,10 +24,12 @@ jobs:
         working-directory: site
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           cache: npm
@@ -40,7 +45,7 @@ jobs:
         run: npm run check:links
 
       - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v1
+        uses: browser-actions/setup-chrome@c785b87e244131f27c9f19c1a33e2ead956ab7ce
 
       - name: Lighthouse assertions
         env:

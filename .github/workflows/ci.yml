@@ -15,6 +15,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # ──────────────────────────────────────────────────────────────────────────
   # Job 1: Lint with SwiftLint
@@ -22,10 +25,13 @@ jobs:
   lint:
     name: Lint
     runs-on: macos-15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.2.app
@@ -55,6 +61,7 @@ jobs:
   build-and-test:
     name: Build & Test (macOS ${{ matrix.macos }})
     runs-on: macos-${{ matrix.macos }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -68,6 +75,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - name: Select Xcode
         run: sudo xcode-select -s ${{ matrix.xcode }}
@@ -144,7 +153,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         # Only upload from one matrix leg to avoid duplicate reports
-        if: matrix.macos == '15'
+        if: matrix.macos == '15' && github.event_name == 'push'
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
           file: coverage.lcov
